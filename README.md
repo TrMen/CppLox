@@ -1,8 +1,8 @@
 # Interpeter
-A C++17 interpreter for the Lox language specified in the book "Crafting Interpreters"
+A C++17 interpreter for the Lox language specified in the book "Crafting Interpreters". This interpreter is using a simple hand-written recursive-descend parser and then uses a visitor-pattern interpreter to evaluate the AST.
 
 This is mainly a learning project. The language is a simple C-like language but with dynamic typing and first-class functions.
-I changes some things, so my version doesn't work exactly like the book. E.g. you cannot redefine variables, there are some builtins, and some keywords are optionally different.
+I changed some things, so my version doesn't work exactly like the book. E.g. you cannot redefine variables, there are some builtins, and some keywords are optionally different.
 
 # Installation
 - `mkdir build && cd build`
