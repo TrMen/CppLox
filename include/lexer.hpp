@@ -13,21 +13,12 @@ public:
 
   explicit Lexer(std::string _source,
                  std::shared_ptr<ErrorHandler> _err_handler =
-                     std::make_shared<CerrHandler>())
-      : source(std::move(_source)),
-        err_handler(std::move(_err_handler))
-  {
-    tokens.reserve(source.size() / 3);
-  }
+                     std::make_shared<CerrHandler>());
 
   std::vector<Token> lex();
 
   // clang-format off
-  std::unordered_map<std::string, Type> keywords{
-      {"and", Type::AND}, {"class", Type::CLASS}, {"else", Type::ELSE}, {"false", Type::FALSE}, 
-      {"for", Type::FOR}, {"fun", Type::FUN}, {"fn", Type::FUN}, {"if", Type::IF}, {"nil", Type::NIL}, {"or", Type::OR}, 
-      {"print", Type::PRINT}, {"return", Type::RETURN}, {"super", Type::SUPER}, {"this", Type::THIS}, 
-      {"true", Type::TRUE}, {"var", Type::VAR}, {"while", Type::WHILE}, {"let", Type::VAR}};
+  static const std::unordered_map<std::string, Type> keywords;
   // clang-format on
 
 private:

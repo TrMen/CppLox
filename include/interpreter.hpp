@@ -39,14 +39,14 @@ private:
   void visit(StmtExpr &visitable) override;
   void visit(IfStmt &visitable) override;
   void visit(WhileStmt &visitable) override;
-  void visit([[maybe_unused]] EmptyStmt &visitable) override;
+  void visit(EmptyStmt &visitable) override;
   void visit(FunctionStmt &visitable) override;
 
   // Expressions
   void visit(Assign &visitable) override;
   void visit(Logical &visitable) override;
   void visit(Variable &visitable) override;
-  void visit([[maybe_unused]] Empty &visitable) override;
+  void visit(Empty &visitable) override;
   void visit(Literal &visitable) override;
   void visit(Unary &visitable) override;
   void visit(Binary &visitable) override;
@@ -59,23 +59,5 @@ private:
 
   Token::literal_t last_value;
   RuntimeError error(const Token &token, const std::string &message);
-  std::shared_ptr<ErrorHandler> err_handler;
-
-  /// RAII class that manages an environment to execute a block in.
-  /// Creating it will execute the block of statements with correct scope
-  class BlockExecutor
-  {
-  public:
-    BlockExecutor(Interpreter &_interpreter,
-                  Environment env);
-    BlockExecutor(Interpreter &_interpreter,
-                  const std::vector<shared_stmt> &statements, Environment env);
-    void execute(const std::vector<stmt> &statements);
-    void execute(const std::vector<shared_stmt> &statements);
-    ~BlockExecutor();
-
-  private:
-    Interpreter &interpreter;
-    Environment original_env;
-  };
+  const std::shared_ptr<ErrorHandler> err_handler;
 };

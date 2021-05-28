@@ -36,13 +36,30 @@ void Interpreter::interpret(const std::vector<stmt> &statements)
 void Interpreter::execute_block(const std::vector<stmt> &body,
                                 Environment block_env)
 {
-  BlockExecutor(*this, std::move(block_env)).execute(body);
+  auto original_env = std::move(environment);
+  block_env.enclosing = &original_env;
+  environment = std::move(block_env);
+
+  LOG_DEBUG("Executing block statements with env: ", environment, " enclosed by ", *environment.enclosing);
+
+  try
+  {
+    for (const auto &statement : body)
+    {
+      execute(statement);
+    }
+  }
+  catch (...)
+  {
+    environment = original_env;
+    throw;
+  }
 }
 
 void Interpreter::execute_block(const std::vector<shared_stmt> &body,
                                 Environment block_env)
 {
-  BlockExecutor(*this, std::move(block_env)).execute(body);
+  BlockExecutor(*this, std::move(block_env));
 }
 
 //------------------Error handling----------------------------------------
@@ -65,60 +82,15 @@ void Interpreter::execute(const shared_stmt &statement)
   dynamic_cast<StmtVisitableBase &>(*statement).accept(*this);
 }
 
-Interpreter::BlockExecutor::BlockExecutor(Interpreter &_interpreter,
-                                          Environment block_env)
-    : interpreter(_interpreter), original_env(_interpreter.environment)
-{
-  interpreter.environment = std::move(block_env);
-  interpreter.environment.enclosing = &original_env; // Required because otherwise interp.env.enclosing will be interp.env -> reference loop
-
-  LOG_DEBUG("Executing block statements with env: ", interpreter.environment, " enclosed by ", *interpreter.environment.enclosing);
-}
-
-// Needs to be its own method, rather than just executing in the constructor, because otherwise the destructor isn't called in case of exception
-// This should probably be refactored. I don't quite know which way is best.
-void Interpreter::BlockExecutor::execute(const std::vector<stmt> &statements)
-{
-  for (const auto &statement : statements)
-  {
-    interpreter.execute(statement);
-  }
-}
-
-void Interpreter::BlockExecutor::execute(const std::vector<shared_stmt> &statements)
-{
-  for (const auto &statement : statements)
-  {
-    interpreter.execute(statement);
-  }
-}
-
-Interpreter::BlockExecutor::BlockExecutor(
-    Interpreter &_interpreter, const std::vector<shared_stmt> &statements,
-    Environment env)
-    : interpreter(_interpreter), original_env(std::move(_interpreter.environment))
-{
-  interpreter.environment = std::move(env);
-  for (const auto &statement : statements)
-  {
-    interpreter.execute(statement);
-  }
-}
-
-Interpreter::BlockExecutor::~BlockExecutor()
-{
-  interpreter.environment = std::move(original_env);
-  LOG_DEBUG("Restored original env: ", interpreter.environment, " enclosed? ", interpreter.environment.enclosing);
-}
-
-//---------- Helper functions for dynamic typing------------
+//---------- Helper functions for dynamic typing ------------
 
 /* All literals except NullType and the bool false are truthy, including "", 0, functions, callables*/
 static bool is_truthy(const Token::literal_t &literal)
 {
   bool truthy = false;
   std::visit(
-      [&truthy](auto &&arg) {
+      [&truthy](auto &&arg)
+      {
         using T = std::decay_t<decltype(arg)>;
         if constexpr (std::is_same_v<T, NullType>)
         {
@@ -266,19 +238,20 @@ void Interpreter::visit(Call &visitable)
 
   // Get a callable version of the callee
   auto get_callable_visitor =
-      [this, &visitable](auto &&arg) {
-        using T = std::decay_t<decltype(arg)>;
-        if constexpr (std::is_same_v<T, std::shared_ptr<Callable>> ||
-                      std::is_same_v<T, std::shared_ptr<Function>>)
-        {
-          return dynamic_cast<Callable *>(arg.get());
-        }
-        throw error(visitable.child<1>(),
-                    "Can only call functions and classes.");
-        Function *_ = new Function(nullptr);
-        return dynamic_cast<Callable *>(
-            _); // So the return type is deduced correctly. This never returns.
-      };
+      [this, &visitable](auto &&arg)
+  {
+    using T = std::decay_t<decltype(arg)>;
+    if constexpr (std::is_same_v<T, std::shared_ptr<Callable>> ||
+                  std::is_same_v<T, std::shared_ptr<Function>>)
+    {
+      return dynamic_cast<Callable *>(arg.get());
+    }
+    throw error(visitable.child<1>(),
+                "Can only call functions and classes.");
+    Function *_ = new Function(nullptr);
+    return dynamic_cast<Callable *>(
+        _); // So the return type is deduced correctly. This never returns.
+  };
   const auto callable = std::visit(get_callable_visitor, callee);
 
   // Check arity (number of arguments)
@@ -331,9 +304,9 @@ void Interpreter::visit(Variable &visitable)
   last_value = environment.get(visitable.child<0>());
 }
 
-/// Empty expressions just have a null value
-void Interpreter::visit([[maybe_unused]] Empty &visitable)
+void Interpreter::visit(Empty &)
 {
+  // Empty expressions just have a null value
   last_value = NullType();
 }
 
