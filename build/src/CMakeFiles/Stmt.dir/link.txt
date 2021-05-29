@@ -1,0 +1,2 @@
+/usr/bin/ar qc libStmt.a  CMakeFiles/Stmt.dir/stmt.cpp.o
+/usr/bin/ranlib libStmt.a

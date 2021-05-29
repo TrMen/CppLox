@@ -1,0 +1,2 @@
+/usr/bin/ar qc libBuildin.a  CMakeFiles/Buildin.dir/buildin.cpp.o
+/usr/bin/ranlib libBuildin.a

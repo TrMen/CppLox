@@ -1,0 +1,46 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/error.hpp
+token.hpp
+../include/token.hpp
+fstream
+-
+memory
+-
+string_view
+-
+
+../include/lexer.hpp
+error.hpp
+../include/error.hpp
+token.hpp
+../include/token.hpp
+memory
+-
+unordered_map
+-
+vector
+-
+
+../include/token.hpp
+iostream
+-
+memory
+-
+string
+-
+variant
+-
+vector
+-
+
+/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/Project/src/lexer.cpp
+lexer.hpp
+/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/Project/src/lexer.hpp
+

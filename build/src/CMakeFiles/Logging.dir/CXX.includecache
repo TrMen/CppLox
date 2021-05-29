@@ -1,0 +1,22 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/logging.hpp
+string
+-
+iostream
+-
+string.h
+-
+
+/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/Project/src/logging.cpp
+logging.hpp
+/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/Project/src/logging.hpp
+cassert
+-
+
