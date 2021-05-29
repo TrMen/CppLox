@@ -1,2 +1,0 @@
-/usr/bin/ar qc libExpr.a  CMakeFiles/Expr.dir/expr.cpp.o
-/usr/bin/ranlib libExpr.a

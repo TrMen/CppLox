@@ -1,1 +1,0 @@
-/usr/bin/c++     CMakeFiles/MyLang.dir/main.cpp.o  -o MyLang  src/libError.a src/libLexer.a src/libInterpreter.a src/libExpr.a src/libError.a src/libParser.a src/libStmt.a src/libToken.a src/libEnvironment.a src/libFunction.a src/libBuildin.a src/libLogging.a 

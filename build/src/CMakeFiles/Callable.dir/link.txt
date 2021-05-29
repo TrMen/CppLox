@@ -1,2 +1,0 @@
-/usr/bin/ar qc libCallable.a  CMakeFiles/Callable.dir/callable.cpp.o
-/usr/bin/ranlib libCallable.a
