@@ -1,0 +1,3 @@
+fn inc(i) { print(i + 1); }
+
+inc(2);

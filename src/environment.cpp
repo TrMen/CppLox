@@ -9,10 +9,10 @@ void Environment::define(Token variable)
   {
     throw RuntimeError(variable, "Identifier '" + variable.lexeme + "' is already defined in this scope.");
   }
-  variables.emplace(std::move(variable.lexeme), std::move(variable.literal));
+  variables.emplace(std::move(variable.lexeme), std::move(variable.value));
 }
 
-Token::literal_t Environment::get(const Token &token) const
+Token::Value Environment::get(const Token &token) const
 {
   auto elem = variables.find(token.lexeme);
   LOG_DEBUG("Getting variable ", token.lexeme);
@@ -27,7 +27,7 @@ Token::literal_t Environment::get(const Token &token) const
   throw RuntimeError(token, "Cannot access undefined identifier '" + token.lexeme + "'.");
 }
 
-void Environment::assign(const Token &token, const Token::literal_t &value)
+void Environment::assign(const Token &token, const Token::Value &value)
 {
   auto elem = variables.find(token.lexeme);
   if (elem == variables.end())

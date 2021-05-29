@@ -13,10 +13,11 @@ class Parser
 public:
   explicit Parser(std::vector<Token> _tokens,
                   std::shared_ptr<ErrorHandler> _err_handler =
-                      std::make_shared<CerrHandler>())
-      : err_handler(std::move(_err_handler)), tokens(std::move(_tokens)) {}
+                      std::make_shared<CerrHandler>());
+
   bool match(const std::vector<Token::TokenType> &matched_values);
-  Token previous();
+  bool match(Token::TokenType matched_values);
+  const Token &previous() const;
 
   std::vector<stmt> parse();
 
@@ -55,7 +56,7 @@ private:
   expr finish_call(expr callee);
 
   /// Consume the next token if it matches type, else error with message
-  Token consume(Token::TokenType type, const std::string &message);
+  const Token &consume(Token::TokenType type, const std::string &message);
 
   struct ParseError : std::exception
   {
@@ -74,11 +75,11 @@ private:
   /// This means until the next statement begins
   void synchronize();
 
-  Token peek();
-  bool is_at_end();
-  bool check(Token::TokenType type);
-  Token advance();
+  const Token &peek() const;
+  bool is_at_end() const;
+  bool check(Token::TokenType type) const;
+  const Token &advance();
 
-  std::vector<Token> tokens;
+  const std::vector<Token> tokens;
   unsigned int current = 0;
 };

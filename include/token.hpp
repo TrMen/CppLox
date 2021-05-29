@@ -75,25 +75,23 @@ struct Token
     _EOF
   };
 
-  using literal_t =
+  using Value =
       std::variant<double, std::string, NullType, bool,
                    std::shared_ptr<Callable>, std::shared_ptr<Function>>;
 
-  Token(TokenType _type, std::string _lexeme, literal_t _literal,
-        unsigned int _line)
-      : type(_type), lexeme(std::move(_lexeme)), literal(std::move(_literal)),
-        line(_line) {}
+  Token(TokenType _type, std::string _lexeme, Value _value,
+        unsigned int _line);
 
   const TokenType type;
   const std::string lexeme;
-  literal_t literal;
+  Value value;
   const unsigned int line;
 };
 
 std::ostream &operator<<(std::ostream &os, const Token &t);
 
-std::ostream &operator<<(std::ostream &os, const Token::literal_t &literal);
+std::ostream &operator<<(std::ostream &os, const Token::Value &value);
 
-std::ostream &operator<<(std::ostream &os, const std::vector<Token> &literal);
+std::ostream &operator<<(std::ostream &os, const std::vector<Token> &value);
 
-std::string stringify(const Token::literal_t &literal);
+std::string stringify(const Token::Value &value);

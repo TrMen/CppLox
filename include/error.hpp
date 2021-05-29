@@ -8,16 +8,14 @@
 // Thrown by builtin exit() function to stop execution of the interpreter
 struct Exit : public std::runtime_error
 {
-  Exit(const std::string &message)
-      : std::runtime_error(message) {}
+  Exit(const std::string &msg);
 };
 
 struct RuntimeError : public std::runtime_error
 {
-  RuntimeError(Token _token, const std::string &msg)
-      : std::runtime_error("Runtime error at: '" + _token.lexeme + "' in line " +
-                           std::to_string(_token.line) + ": " + msg),
-        token(std::move(_token)) {}
+  RuntimeError(Token _token, const std::string &msg);
+
+  RuntimeError(Token::Value value, const std::string &msg, unsigned int line);
 
   const Token token;
 };
@@ -55,7 +53,7 @@ private:
 class CerrHandler : public ErrorHandler
 {
 public:
-  CerrHandler() = default;
+  CerrHandler();
 
 private:
   void report(unsigned int line, std::string_view where,
@@ -65,8 +63,7 @@ private:
 class FileErrorHandler : public ErrorHandler
 {
 public:
-  explicit FileErrorHandler(std::string_view filename)
-      : err_stream(std::ofstream(filename.data())) {}
+  explicit FileErrorHandler(std::string_view filename);
 
 private:
   void report(unsigned int line, std::string_view where,

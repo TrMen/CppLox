@@ -10,7 +10,7 @@ const std::unordered_map<std::string, Lexer::Type> Lexer::keywords{
     {"var", Type::VAR}, {"while", Type::WHILE}, {"let", Type::VAR}};
 // clang-format on
 
-Lexer::Lexer(std::string _source, std::shared_ptr<ErrorHandler> _err_handler = std::make_shared<CerrHandler>())
+Lexer::Lexer(std::string _source, std::shared_ptr<ErrorHandler> _err_handler)
     : source(std::move(_source)),
       err_handler(std::move(_err_handler))
 {
@@ -214,7 +214,7 @@ char Lexer::peek()
   return source[current];
 }
 
-void Lexer::add_token(Type type, Token::literal_t literal)
+void Lexer::add_token(Type type, Token::Value value)
 {
   if (!last_character_expected)
   {
@@ -222,7 +222,7 @@ void Lexer::add_token(Type type, Token::literal_t literal)
     report_last_syntax_error();
   }
   std::string text = source.substr(start, current - start);
-  tokens.emplace_back(type, text, literal, line);
+  tokens.emplace_back(type, text, value, line);
 }
 
 bool Lexer::expect(char expected)
@@ -261,9 +261,9 @@ void Lexer::identifier()
 
   std::string str = source.substr(start, current - start);
   const auto keyword_it = keywords.find(str);
-  if (keyword_it != keywords.end())
+  if (keyword_it != keywords.cend())
   {
-    add_token(keywords[str]);
+    add_token(keyword_it->second);
   }
   else
   {

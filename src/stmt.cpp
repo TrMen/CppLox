@@ -23,19 +23,3 @@ std::ostream &operator<<(std::ostream &os, const std::vector<stmt> &rhs)
 
     return os;
 }
-
-std::ostream &operator<<(std::ostream &os, const shared_stmt &rhs)
-{
-    rhs->print(os);
-    return os;
-}
-
-std::ostream &operator<<(std::ostream &os, const std::vector<shared_stmt> &rhs)
-{
-    for (const auto &stmt : rhs)
-    {
-        os << stmt;
-    }
-
-    return os;
-}

@@ -1,6 +1,18 @@
 #include "error.hpp"
 #include <cstdlib>
 
+Exit::Exit(const std::string &msg) : std::runtime_error(msg) {}
+
+RuntimeError::RuntimeError(Token _token, const std::string &msg)
+    : std::runtime_error("Runtime error at: '" + _token.lexeme + "' in line " +
+                         std::to_string(_token.line) + ": " + msg),
+      token(std::move(_token)) {}
+
+RuntimeError::RuntimeError(Token::Value value, const std::string &msg, unsigned int line)
+    : std::runtime_error("Runtime error at: '" + stringify(value) + "' in line " +
+                         std::to_string(line) + ": " + msg),
+      token(Token{Token::TokenType::NIL, "RUNTIME_ERROR", value, line}) {}
+
 //--------------------Error-handler---------------------------------------
 ErrorHandler::~ErrorHandler() = default;
 
@@ -59,6 +71,8 @@ void ErrorHandler::runtime_error(unsigned int line, std::string_view message)
 
 //---------------Derived classes-------------------------------------
 
+CerrHandler::CerrHandler() = default;
+
 void CerrHandler::report(unsigned int line, std::string_view where,
                          std::string_view message, bool is_error)
 {
@@ -67,6 +81,8 @@ void CerrHandler::report(unsigned int line, std::string_view where,
                          : "] \033[1;33mWarning\033[0m");
   std::cerr << where << ": " << message << "\n";
 }
+
+FileErrorHandler::FileErrorHandler(std::string_view filename) : err_stream(std::ofstream(filename.data())) {}
 
 void FileErrorHandler::report(unsigned int line, std::string_view where,
                               std::string_view message, bool is_error)

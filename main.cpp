@@ -11,27 +11,8 @@
 #include <vector>
 #include "logging.hpp"
 
-static std::shared_ptr<ErrorHandler> err_handler;
-
-static void run(const std::string &source)
+static void log_tokens(const std::vector<Token> &tokens)
 {
-  if (!err_handler)
-  {
-    err_handler = std::make_shared<CerrHandler>();
-  }
-  static Interpreter interpreter{err_handler};
-
-  Lexer lexer{source, err_handler};
-  std::vector<Token> tokens = lexer.lex();
-
-  if (err_handler->has_error())
-  {
-    return;
-  }
-
-  Parser parser{tokens, err_handler};
-  std::vector<stmt> statements = parser.parse();
-
   LOG_DEBUG("\nTokens after parse:");
 
   for (const auto &t : tokens)
@@ -40,10 +21,30 @@ static void run(const std::string &source)
   }
 
   LOG_DEBUG("\n");
+}
+
+static std::shared_ptr<ErrorHandler> err_handler{std::make_shared<CerrHandler>()};
+
+static std::vector<stmt> run(const std::string &source)
+{
+  static Interpreter interpreter{std::cout, err_handler};
+
+  Lexer lexer{source, err_handler};
+  std::vector<Token> tokens = lexer.lex();
 
   if (err_handler->has_error())
   {
-    return;
+    return {};
+  }
+
+  Parser parser{tokens, err_handler};
+  std::vector<stmt> statements = parser.parse();
+
+  log_tokens(tokens);
+
+  if (err_handler->has_error())
+  {
+    return {};
   }
 
   try
@@ -57,11 +58,16 @@ static void run(const std::string &source)
   }
 
   Logging::newline();
+
+  return statements;
 }
 
 static int run_prompt()
 {
   std::string line{};
+
+  // Save statements so the AST of previous prompt inputs stays alive. Required for proper handling of function declarations across input lines
+  std::vector<stmt> run_statements;
 
   while (true)
   {
@@ -72,7 +78,9 @@ static int run_prompt()
       return 0;
     }
 
-    run(line);
+    auto newly_run_statements = run(line);
+    run_statements.insert(run_statements.end(), std::make_move_iterator(newly_run_statements.begin()), std::make_move_iterator(newly_run_statements.end()));
+
     err_handler->reset_error();
   }
 }

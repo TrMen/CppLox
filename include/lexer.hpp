@@ -24,7 +24,7 @@ public:
 private:
   bool is_at_end();
   char advance();
-  void add_token(Type t, Token::literal_t literal = NullType());
+  void add_token(Type t, Token::Value value = NullType{});
   void scan_token();
   bool expect(char expected);
   char peek();

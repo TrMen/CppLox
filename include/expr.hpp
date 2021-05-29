@@ -19,7 +19,7 @@ struct Production;
 
 using Binary = Production<0, expr, Token, expr>; //	expr bin_op expr
 using Grouping = Production<1, expr>;            // (expr)
-using Literal = Production<2, Token::literal_t>; //	literal
+using Literal = Production<2, Token::Value>;     //	value
 using Unary = Production<3, Token, expr>;        //	unary_op expr
 using Ternary =
     Production<4, expr, Token, expr, Token, expr>;  //	expr op expr op expr
@@ -56,7 +56,8 @@ public:
   void print(std::ostream &os) const override
   {
     os << "Expr: \n\t";
-    std::apply([&os](auto &&...args) { ((os << "\t" << args << "\t"), ...); },
+    std::apply([&os](auto &&...args)
+               { ((os << "\t" << args << "\t"), ...); },
                derivatives);
     os << "\n";
   }

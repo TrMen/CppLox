@@ -14,18 +14,18 @@ public:
 
   /// Get a variable value by the name of the supplied token.
   /// May throw RuntimeError on unknown variable access.
-  Token::literal_t get(const Token &token) const;
+  Token::Value get(const Token &token) const;
 
   /// Assign a new value to an existing variable.
   /// May throw RuntimeError on unknown variable access.
-  void assign(const Token &name, const Token::literal_t &value);
+  void assign(const Token &name, const Token::Value &value);
 
   Environment *enclosing = nullptr;
 
   std::string to_string() const;
 
 private:
-  std::unordered_map<std::string, Token::literal_t> variables;
+  std::unordered_map<std::string, Token::Value> variables;
 };
 
 std::ostream &operator<<(std::ostream &os, const Environment &env);

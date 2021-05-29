@@ -1,17 +1,23 @@
 #include "parser.hpp"
 #include "function.hpp"
+#include "logging.hpp"
+#include <algorithm>
 
 using Type = Token::TokenType;
+
+Parser::Parser(std::vector<Token> _tokens,
+               std::shared_ptr<ErrorHandler> _err_handler)
+    : err_handler(std::move(_err_handler)), tokens(std::move(_tokens)) {}
 
 const char *Parser::ParseError::what() const noexcept { return message; }
 
 //---------------Primitive parser function implementations-----------------
 
-bool Parser::is_at_end() { return peek().type == Type::_EOF; }
+bool Parser::is_at_end() const { return peek().type == Type::_EOF; }
 
-Token Parser::peek() { return tokens[current]; }
+const Token &Parser::peek() const { return tokens[current]; }
 
-bool Parser::check(Type type)
+bool Parser::check(Type type) const
 {
   if (is_at_end())
   {
@@ -20,9 +26,9 @@ bool Parser::check(Type type)
   return peek().type == type;
 }
 
-Token Parser::previous() { return tokens[current - 1]; }
+const Token &Parser::previous() const { return tokens[current - 1]; }
 
-Token Parser::advance()
+const Token &Parser::advance()
 {
   if (!is_at_end())
   {
@@ -33,13 +39,16 @@ Token Parser::advance()
 
 bool Parser::match(const std::vector<Type> &matched_types)
 {
-  for (const auto &type : matched_types)
+  return std::any_of(matched_types.cbegin(), matched_types.cend(), [this](auto &&type)
+                     { return this->match(type); });
+}
+
+bool Parser::match(Type matched_type)
+{
+  if (check(matched_type))
   {
-    if (check(type))
-    {
-      advance();
-      return true;
-    }
+    advance();
+    return true;
   }
   return false;
 }
@@ -50,14 +59,11 @@ stmt Parser::declaration()
 {
   try
   {
-    if (match({Type::FUN}))
-    {
+    if (match(Type::FUN))
       return function("Function");
-    }
-    if (match({Type::VAR}))
-    {
+    if (match(Type::VAR))
       return var_declaration();
-    }
+
     return statement();
   }
   catch (const ParseError &err)
@@ -72,7 +78,7 @@ stmt Parser::var_declaration()
   Token name = consume(Type::IDENTIFIER, "Expect variable identitifier");
 
   expr initializer = new_expr<Empty>();
-  if (match({Type::EQUAL}))
+  if (match(Type::EQUAL))
   {
     initializer = expression();
   }
@@ -82,26 +88,17 @@ stmt Parser::var_declaration()
 
 stmt Parser::statement()
 {
-  if (match({Type::IF}))
-  {
+  if (match(Type::IF))
     return if_statement();
-  }
-  if (match({Type::FOR}))
-  {
+  if (match(Type::FOR))
     return for_statement();
-  }
-  if (match({Type::WHILE}))
-  {
+  if (match(Type::WHILE))
     return while_statement();
-  }
-  if (match({Type::LEFT_BRACE}))
-  {
+  if (match(Type::LEFT_BRACE))
     return new_stmt<Block>(block());
-  }
-  if (match({Type::PRINT}))
-  {
+  if (match(Type::PRINT))
     return print_statement();
-  }
+
   return expression_statement();
 }
 
@@ -120,22 +117,15 @@ stmt Parser::function(const std::string &kind)
         error(peek(), "Cannot define more than 255 parameters.");
       }
       parameters.push_back(consume(Type::IDENTIFIER, "Expect parameter name."));
-    } while (match({Type::COMMA}));
+    } while (match(Type::COMMA));
   }
   consume(Type::RIGHT_PAREN, "Expect ')' after parameter list.");
   consume(Type::LEFT_BRACE, "Expect '{' before " + kind + " body.");
 
-  std::vector<stmt> unique_body = block();
-  std::vector<shared_stmt> body;
-
-  body.reserve(unique_body.size());
-  for (auto &&statement : unique_body)
-  {
-    body.push_back(std::move(statement));
-  }
+  LOG_DEBUG("Fn param size at creation: ", parameters.size());
 
   return new_stmt<FunctionStmt>(std::move(name), std::move(parameters),
-                                std::move(body));
+                                block());
 }
 
 stmt Parser::for_statement()
@@ -144,11 +134,11 @@ stmt Parser::for_statement()
 
   // First clause: initializer
   stmt initializer;
-  if (match({Type::SEMICOLON}))
+  if (match(Type::SEMICOLON))
   {
-    ;
+    ; // Do nothing
   }
-  else if (match({Type::VAR}))
+  else if (match(Type::VAR))
   {
     initializer = var_declaration();
   }
@@ -221,7 +211,7 @@ stmt Parser::if_statement()
 
   stmt then_stmt = statement();
   stmt else_stmt = new_stmt<EmptyStmt>();
-  if (match({Type::ELSE}))
+  if (match(Type::ELSE))
   {
     else_stmt = statement();
   }
@@ -264,22 +254,16 @@ stmt Parser::expression_statement()
  * prod is the binary production itself
  * expr_type is the resulting derived AST type of the returned expr
  */
-template <expr (Parser::*T)(), std::vector<Type> &matched_types,
-          std::vector<Type> *error_types = nullptr, typename expr_type = Binary>
+template <expr (Parser::*T)(), const std::vector<Type> &matched_types,
+          const std::vector<Type> &error_types, typename expr_type = Binary>
 static expr left_associative_binary_production(Parser *owner)
 {
-  if constexpr (error_types != nullptr)
-  {
-    if (owner->match(
-            *error_types))
-    { // Erronous use of binary operator as unary
-      Token prev = owner->previous();
-      (owner->*T)(); // Discard result
-      owner->err_handler->error(prev,
-                                "Illegal use of unary operator " + prev.lexeme);
-      return new_expr<Malformed>(true, "Illegal use of unary operator " +
-                                           prev.lexeme);
-    }
+  if (owner->match(error_types))
+  { // Erronous use of binary operator as unary
+    Token prev = owner->previous();
+    (owner->*T)(); // Discard result
+    owner->err_handler->error(prev, "Illegal use of unary operator " + prev.lexeme);
+    return new_expr<Malformed>(true, "Illegal use of unary operator " + prev.lexeme);
   }
   expr result = (owner->*T)();
 
@@ -287,17 +271,16 @@ static expr left_associative_binary_production(Parser *owner)
   {
     Token op = owner->previous();
     expr rhs = (owner->*T)();
-    result =
-        new_expr<expr_type>(std::move(result), std::move(op), std::move(rhs));
+    result = new_expr<expr_type>(std::move(result), std::move(op), std::move(rhs));
   }
   return result;
 }
 
-static std::vector<Type> expression_types{Type::COMMA};
 expr Parser::expression()
 {
+  static const std::vector<Type> expression_types{Type::COMMA};
   return left_associative_binary_production<
-      &Parser::comma_expression, expression_types, &expression_types>(this);
+      &Parser::comma_expression, expression_types, expression_types>(this);
 }
 
 expr Parser::comma_expression() { return assignment(); }
@@ -306,9 +289,9 @@ expr Parser::assignment()
 {
   expr x_value = or_expression();
 
-  if (match({Type::EQUAL}))
+  if (match(Type::EQUAL))
   {
-    Token equal = previous();
+    const auto &equal = previous();
     expr value = assignment();
 
     // This checks whether we can assign to the x_value.
@@ -328,12 +311,11 @@ expr Parser::ternary_conditional()
 {
   expr result = or_expression();
 
-  if (match({Type::QUESTION_MARK}))
+  if (match(Type::QUESTION_MARK))
   {
     Token question_mark = previous();
     expr middle = expression();
-    Token colon = consume(
-        Type::COLON, "Expected ':' after '?' for ternary conditional operator");
+    Token colon = consume(Type::COLON, "Expected ':' after '?' for ternary conditional operator");
     expr right = expression();
     result = new_expr<Ternary>(std::move(result), std::move(question_mark),
                                std::move(middle), std::move(colon),
@@ -342,44 +324,41 @@ expr Parser::ternary_conditional()
   return result;
 }
 
-static std::vector<Type> or_expression_types{Type::OR};
 expr Parser::or_expression()
 {
-  return left_associative_binary_production<&Parser::and_expression,
-                                            or_expression_types,
-                                            &or_expression_types, Logical>(
-      this);
+  static const std::vector<Type> or_expression_types{Type::OR};
+  return left_associative_binary_production<
+      &Parser::and_expression, or_expression_types, or_expression_types, Logical>(this);
 }
 
-static std::vector<Type> and_expression_types{Type::AND};
 expr Parser::and_expression()
 {
+  static const std::vector<Type> and_expression_types{Type::AND};
   return left_associative_binary_production<
-      &Parser::equality, and_expression_types, &and_expression_types, Logical>(
-      this);
+      &Parser::equality, and_expression_types, and_expression_types, Logical>(this);
 }
 
-static std::vector<Type> equality_types{Type::BANG_EQUAL, Type::EQUAL_EQUAL};
 expr Parser::equality()
 {
-  return left_associative_binary_production<&Parser::comparison, equality_types,
-                                            &equality_types>(this);
+  static const std::vector<Type> equality_types{Type::BANG_EQUAL, Type::EQUAL_EQUAL};
+  return left_associative_binary_production<
+      &Parser::comparison, equality_types, equality_types>(this);
 }
 
-static std::vector<Type> comparison_types{Type::GREATER, Type::GREATER_EQUAL,
-                                          Type::LESS, Type::LESS_EQUAL};
 expr Parser::comparison()
 {
-  return left_associative_binary_production<&Parser::addition, comparison_types,
-                                            &comparison_types>(this);
+  static const std::vector<Type> comparison_types{Type::GREATER, Type::GREATER_EQUAL,
+                                                  Type::LESS, Type::LESS_EQUAL};
+  return left_associative_binary_production<
+      &Parser::addition, comparison_types, comparison_types>(this);
 }
 
-static std::vector<Type> addition_types{Type::MINUS, Type::PLUS};
-static std::vector<Type> addition_forbidden_unaries{Type::PLUS};
 expr Parser::addition()
 {
+  static const std::vector<Type> addition_types{Type::MINUS, Type::PLUS};
+  static const std::vector<Type> addition_forbidden_unaries{Type::PLUS};
   return left_associative_binary_production<
-      &Parser::multiplication, addition_types, &addition_forbidden_unaries>(
+      &Parser::multiplication, addition_types, addition_forbidden_unaries>(
       this);
 }
 
@@ -387,7 +366,7 @@ static std::vector<Type> multiplication_types{Type::STAR, Type::SLASH};
 expr Parser::multiplication()
 {
   return left_associative_binary_production<
-      &Parser::unary, multiplication_types, &multiplication_types>(this);
+      &Parser::unary, multiplication_types, multiplication_types>(this);
 }
 
 expr Parser::unary()
@@ -412,7 +391,7 @@ expr Parser::finish_call(expr callee)
         error(peek(), "Cannot have more than 255 function arguments");
       }
       arguments.push_back(comma_expression());
-    } while (match({Type::COMMA}));
+    } while (match(Type::COMMA));
   }
 
   Token paren = consume(Type::RIGHT_PAREN, "Expect ')' after arguments");
@@ -427,7 +406,7 @@ expr Parser::call()
 
   while (true)
   {
-    if (match({Type::LEFT_PAREN}))
+    if (match(Type::LEFT_PAREN))
     {
       result = finish_call(std::move(result));
     }
@@ -442,31 +421,27 @@ expr Parser::call()
 
 expr Parser::primary()
 {
-  if (match({Type::FALSE}))
-  {
+  if (match(Type::FALSE))
     return new_expr<Literal>(false);
-  }
-  if (match({Type::TRUE}))
-  {
+  if (match(Type::TRUE))
     return new_expr<Literal>(true);
-  }
-  if (match({Type::NIL}))
-  {
+
+  if (match(Type::NIL))
     return new_expr<Literal>(NullType());
-  }
 
   if (match({Type::NUMBER, Type::STRING}))
   {
-    Token::literal_t previous_literal = previous().literal;
-    return new_expr<Literal>(std::move(previous_literal));
+    Token::Value previous_val = previous().value;
+    return new_expr<Literal>(std::move(previous_val));
   }
 
-  if (match({Type::IDENTIFIER}))
+  if (match(Type::IDENTIFIER))
   {
-    return new_expr<Variable>(previous());
+    auto variable = previous();
+    return new_expr<Variable>(std::move(variable));
   }
 
-  if (match({Type::LEFT_PAREN}))
+  if (match(Type::LEFT_PAREN))
   {
     expr middle = expression();
     consume(Type::RIGHT_PAREN, "Expected ')' after expression");
@@ -476,7 +451,7 @@ expr Parser::primary()
   throw error(peek(), "Expect expression.");
 }
 
-Token Parser::consume(Type type, const std::string &message)
+const Token &Parser::consume(Type type, const std::string &message)
 {
   if (check(type))
   {

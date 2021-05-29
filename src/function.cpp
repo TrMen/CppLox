@@ -1,9 +1,15 @@
 #include "function.hpp"
 #include "interpreter.hpp"
+#include "logging.hpp"
 
-Token::literal_t
+Function::Function(const FunctionStmt *_declaration)
+    : declaration(_declaration)
+{
+}
+
+Token::Value
 Function::call(Interpreter &interpreter,
-               const std::vector<Token::literal_t> &arguments)
+               const std::vector<Token::Value> &arguments)
 {
   Environment environment{&interpreter.environment};
 
@@ -12,7 +18,7 @@ Function::call(Interpreter &interpreter,
   for (size_t i = 0; i < parameters.size(); ++i)
   {
     auto parameter = parameters[i];
-    parameter.literal = arguments[i];
+    parameter.value = arguments[i];
     environment.define(parameter);
   }
 

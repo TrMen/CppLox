@@ -1,21 +1,27 @@
 #include "token.hpp"
 #include "callable.hpp"
 #include "function.hpp"
+#include "error.hpp"
 #include <cmath>
+#include <cassert>
 
-bool operator==([[maybe_unused]] const NullType &lhs,
-                [[maybe_unused]] const NullType &rhs)
+Token::Token(TokenType _type, std::string _lexeme, Value _value,
+             unsigned int _line) : type(_type), lexeme(std::move(_lexeme)), value(std::move(_value)),
+                                   line(_line) {}
+
+bool operator==(const NullType &,
+                const NullType &)
 {
   return true;
 }
-bool operator!=([[maybe_unused]] const NullType &lhs,
-                [[maybe_unused]] const NullType &rhs)
+bool operator!=(const NullType &,
+                const NullType &)
 {
   return false;
 }
 
 std::ostream &operator<<(std::ostream &os,
-                         [[maybe_unused]] const NullType &rhs)
+                         const NullType &)
 {
   return os;
 }
@@ -23,7 +29,7 @@ std::ostream &operator<<(std::ostream &os,
 std::ostream &operator<<(std::ostream &os, const Token &t)
 {
   os << static_cast<std::underlying_type<Token::TokenType>::type>(t.type)
-     << "\t" << t.lexeme << "\t" << t.literal;
+     << "\t" << t.lexeme << "\t" << t.value;
 
   return os;
 }
@@ -40,7 +46,7 @@ std::ostream &operator<<(std::ostream &os, const std::vector<Token> &tokens)
   return os;
 }
 
-std::string stringify(const Token::literal_t &arg)
+std::string stringify(const Token::Value &arg)
 {
   if (std::holds_alternative<bool>(arg))
   {
@@ -73,10 +79,11 @@ std::string stringify(const Token::literal_t &arg)
   {
     return std::get<std::shared_ptr<Function>>(arg)->to_string();
   }
-  return "INVALID STRINGIFY REPRESENTATION";
+
+  assert(false);
 }
 
-std::ostream &operator<<(std::ostream &os, const Token::literal_t &literal)
+std::ostream &operator<<(std::ostream &os, const Token::Value &value)
 {
-  return os << stringify(literal);
+  return os << stringify(value);
 }

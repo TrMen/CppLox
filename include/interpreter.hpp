@@ -11,9 +11,7 @@ class Parser;
 
 struct Interpreter : public Visitor_t, public StmtVisitor
 {
-  explicit Interpreter(std::shared_ptr<ErrorHandler> _err_handler =
-                           std::make_shared<CerrHandler>(),
-                       std::ostream &_os = std::cout);
+  explicit Interpreter(std::ostream &_os, std::shared_ptr<ErrorHandler> _err_handler);
 
   ~Interpreter() override = default;
 
@@ -21,12 +19,10 @@ struct Interpreter : public Visitor_t, public StmtVisitor
   void interpret(const std::vector<stmt> &statements);
 
   void execute(const stmt &statement);
-  void execute(const shared_stmt &statement);
 
   Environment environment;
 
   void execute_block(const std::vector<stmt> &body, Environment block_env);
-  void execute_block(const std::vector<shared_stmt> &body, Environment block_env);
 
   std::ostream &out_stream;
 
@@ -55,9 +51,8 @@ private:
   void visit(Call &visitable) override;
   void visit(Grouping &visitable) override;
 
-  Token::literal_t get_evaluated_literal(const expr &node);
+  Token::Value get_evaluated(const expr &node);
 
-  Token::literal_t last_value;
-  RuntimeError error(const Token &token, const std::string &message);
+  Token::Value last_value;
   const std::shared_ptr<ErrorHandler> err_handler;
 };

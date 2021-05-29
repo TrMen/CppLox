@@ -8,11 +8,10 @@ using Type = Token::TokenType;
 
 //------------------Interface implementations-----------------------------
 
-Interpreter::Interpreter(std::shared_ptr<ErrorHandler> _err_handler,
-                         std::ostream &_os)
-    : err_handler(std::move(_err_handler)), out_stream(_os)
+Interpreter::Interpreter(std::ostream &_os, std::shared_ptr<ErrorHandler> _err_handler)
+    : out_stream(_os), err_handler(std::move(_err_handler))
 {
-  for (const Token &buildin : Buildin::get_buildins())
+  for (const auto &buildin : Buildin::get_buildins())
   {
     environment.define(buildin);
   }
@@ -36,7 +35,7 @@ void Interpreter::interpret(const std::vector<stmt> &statements)
 void Interpreter::execute_block(const std::vector<stmt> &body,
                                 Environment block_env)
 {
-  auto original_env = std::move(environment);
+  Environment original_env = std::move(environment);
   block_env.enclosing = &original_env;
   environment = std::move(block_env);
 
@@ -46,28 +45,18 @@ void Interpreter::execute_block(const std::vector<stmt> &body,
   {
     for (const auto &statement : body)
     {
+      LOG_DEBUG("Executing statement in block: ", statement);
       execute(statement);
     }
+    environment = std::move(original_env);
   }
   catch (...)
   {
+    LOG_INFO("Caught exception in execute_block()");
     environment = original_env;
     throw;
   }
-}
-
-void Interpreter::execute_block(const std::vector<shared_stmt> &body,
-                                Environment block_env)
-{
-  BlockExecutor(*this, std::move(block_env));
-}
-
-//------------------Error handling----------------------------------------
-
-RuntimeError Interpreter::error(const Token &token,
-                                const std::string &message)
-{
-  return RuntimeError(token, message);
+  LOG_DEBUG("Env at and of block execution: ", environment);
 }
 
 //-------------Start of interpreter visitor implementation------------------
@@ -77,15 +66,10 @@ void Interpreter::execute(const stmt &statement)
   dynamic_cast<StmtVisitableBase &>(*statement).accept(*this);
 }
 
-void Interpreter::execute(const shared_stmt &statement)
-{
-  dynamic_cast<StmtVisitableBase &>(*statement).accept(*this);
-}
-
 //---------- Helper functions for dynamic typing ------------
 
-/* All literals except NullType and the bool false are truthy, including "", 0, functions, callables*/
-static bool is_truthy(const Token::literal_t &literal)
+/* All values except NullType and the bool false are truthy, including "", 0, functions, callables*/
+static bool is_truthy(const Token::Value &value)
 {
   bool truthy = false;
   std::visit(
@@ -105,7 +89,7 @@ static bool is_truthy(const Token::literal_t &literal)
           truthy = true;
         }
       },
-      literal);
+      value);
 
   return truthy;
 }
@@ -151,13 +135,13 @@ static void assert_true(bool condition, const Token &op,
 void Interpreter::visit(FunctionStmt &visitable)
 {
   auto function = visitable.child<0>();
-  function.literal = std::make_shared<Function>(std::make_unique<const FunctionStmt>(visitable));
+  function.value = std::make_shared<Function>(&visitable);
   environment.define(function);
 }
 
 void Interpreter::visit(IfStmt &visitable)
 {
-  Token::literal_t cond = get_evaluated_literal(visitable.child<0>());
+  Token::Value cond = get_evaluated(visitable.child<0>());
   if (is_truthy(cond))
   {
     execute(visitable.child<1>());
@@ -170,7 +154,7 @@ void Interpreter::visit(IfStmt &visitable)
 
 void Interpreter::visit(WhileStmt &visitable)
 {
-  while (is_truthy(get_evaluated_literal(visitable.child<0>())))
+  while (is_truthy(get_evaluated(visitable.child<0>())))
   {
     execute(visitable.child<1>());
   }
@@ -192,19 +176,19 @@ void Interpreter::visit(Var &visitable)
   auto variable = visitable.child<0>();
   const expr &initializer = visitable.child<1>();
   // This will correctly return NullType when the initializer is Empty
-  variable.literal = get_evaluated_literal(initializer);
+  variable.value = get_evaluated(initializer);
 
   environment.define(variable);
 }
 
 void Interpreter::visit(StmtExpr &visitable)
 {
-  get_evaluated_literal(visitable.child<0>());
+  get_evaluated(visitable.child<0>());
 }
 
 void Interpreter::visit(Print &visitable)
 {
-  out_stream << get_evaluated_literal(visitable.child<0>()) << std::endl;
+  out_stream << get_evaluated(visitable.child<0>()) << std::endl;
 }
 
 void Interpreter::visit(MalformedStmt &visitable)
@@ -214,10 +198,10 @@ void Interpreter::visit(MalformedStmt &visitable)
 
   if (is_critical)
   {
-    throw error(Token(Type::_EOF, "MALFORMED", "MALFORMED", 0),
-                "Malformed statement node in AST. Syntax was not valid. Lexer "
-                "message:\t" +
-                    lexer_message);
+    throw RuntimeError(Token(Type::_EOF, "MALFORMED", "MALFORMED", 0),
+                       "Malformed statement node in AST. Syntax was not valid. Lexer "
+                       "message:\t" +
+                           lexer_message);
   }
   // Non-critical syntax errors just leave the last value untouched.
 }
@@ -226,7 +210,7 @@ void Interpreter::visit(MalformedStmt &visitable)
 
 /// For a node, get the value of its visit. This is required because we only
 /// have visit functions returning void
-Token::literal_t Interpreter::get_evaluated_literal(const expr &node)
+Token::Value Interpreter::get_evaluated(const expr &node)
 {
   dynamic_cast<VisitableBase &>(*node).accept(*this);
   return last_value;
@@ -234,40 +218,33 @@ Token::literal_t Interpreter::get_evaluated_literal(const expr &node)
 
 void Interpreter::visit(Call &visitable)
 {
-  Token::literal_t callee = get_evaluated_literal(visitable.child<0>());
+  Token::Value callee = get_evaluated(visitable.child<0>());
 
-  // Get a callable version of the callee
-  auto get_callable_visitor =
-      [this, &visitable](auto &&arg)
+  const auto callable = [this, &visitable](Token::Value callee)
   {
-    using T = std::decay_t<decltype(arg)>;
-    if constexpr (std::is_same_v<T, std::shared_ptr<Callable>> ||
-                  std::is_same_v<T, std::shared_ptr<Function>>)
+    if (std::holds_alternative<std::shared_ptr<Callable>>(callee) ||
+        std::holds_alternative<std::shared_ptr<Function>>(callee))
     {
-      return dynamic_cast<Callable *>(arg.get());
+      return dynamic_cast<Callable *>(std::get<std::shared_ptr<Callable>>(callee).get());
     }
-    throw error(visitable.child<1>(),
-                "Can only call functions and classes.");
-    Function *_ = new Function(nullptr);
-    return dynamic_cast<Callable *>(
-        _); // So the return type is deduced correctly. This never returns.
-  };
-  const auto callable = std::visit(get_callable_visitor, callee);
+    throw RuntimeError(visitable.child<1>(),
+                       "Can only call functions and classes.");
+  }(visitable.child<0>());
 
   // Check arity (number of arguments)
   if (visitable.child<2>().size() != callable->arity())
   {
-    throw error(visitable.child<1>(),
-                "Expected " + std::to_string(callable->arity()) +
-                    " arguments but got " +
-                    std::to_string(visitable.child<2>().size()) + ".");
+    throw RuntimeError(visitable.child<1>(),
+                       "Expected " + std::to_string(callable->arity()) +
+                           " arguments but got " +
+                           std::to_string(visitable.child<2>().size()) + ".");
   }
 
   // Evaluate arguments
-  std::vector<Token::literal_t> arguments;
+  std::vector<Token::Value> arguments;
   for (const auto &argument : visitable.child<2>())
   {
-    arguments.push_back(get_evaluated_literal(argument));
+    arguments.push_back(get_evaluated(argument));
   }
 
   last_value = callable->call(*this, arguments);
@@ -275,8 +252,8 @@ void Interpreter::visit(Call &visitable)
 
 void Interpreter::visit(Assign &visitable)
 {
-  Token name = visitable.child<0>();
-  Token::literal_t value = get_evaluated_literal(visitable.child<1>());
+  const Token &name = visitable.child<0>();
+  Token::Value value = get_evaluated(visitable.child<1>());
 
   environment.assign(name, value);
   last_value = value;
@@ -284,8 +261,8 @@ void Interpreter::visit(Assign &visitable)
 
 void Interpreter::visit(Logical &visitable)
 {
-  Token::literal_t lhs = get_evaluated_literal(visitable.child<0>());
-  Token op = visitable.child<1>();
+  Token::Value lhs = get_evaluated(visitable.child<0>());
+  const Token &op = visitable.child<1>();
   if (op.type == Type::OR && is_truthy(lhs))
   {
     last_value = lhs;
@@ -296,7 +273,7 @@ void Interpreter::visit(Logical &visitable)
     last_value = lhs;
     return;
   }
-  last_value = get_evaluated_literal(visitable.child<2>());
+  last_value = get_evaluated(visitable.child<2>());
 }
 
 void Interpreter::visit(Variable &visitable)
@@ -317,26 +294,26 @@ void Interpreter::visit(Literal &visitable)
 
 void Interpreter::visit(Grouping &visitable)
 {
-  last_value = get_evaluated_literal(visitable.child<0>());
+  last_value = get_evaluated(visitable.child<0>());
 }
 
 void Interpreter::visit(Unary &visitable)
 {
-  Token::literal_t literal = get_evaluated_literal(visitable.child<1>());
+  Token::Value value = get_evaluated(visitable.child<1>());
 
-  Token op = visitable.child<0>();
+  const Token &op = visitable.child<0>();
 
   switch (op.type)
   {
   case Type::MINUS:
-    assert_operand_types<double>(op, literal);
-    last_value = -std::get<double>(literal);
+    assert_operand_types<double>(op, value);
+    last_value = -std::get<double>(value);
     break;
   case Type::BANG:
-    last_value = !is_truthy(literal);
+    last_value = !is_truthy(value);
     break;
   default:
-    throw error(op, "Unknown token type in unary operator eval");
+    throw RuntimeError(op, "Unknown token type in unary operator eval");
   }
 }
 
@@ -344,9 +321,9 @@ void Interpreter::visit(Binary &visitable)
 {
   // This implementation defines left-to-right evaluation of binary
   // expressions
-  Token::literal_t left = get_evaluated_literal(visitable.child<0>());
-  Token op = visitable.child<1>();
-  Token::literal_t right = get_evaluated_literal(visitable.child<2>());
+  Token::Value left = get_evaluated(visitable.child<0>());
+  const Token &op = visitable.child<1>();
+  Token::Value right = get_evaluated(visitable.child<2>());
 
   switch (op.type)
   {
@@ -391,7 +368,7 @@ void Interpreter::visit(Binary &visitable)
           std::get<std::string>(left).compare(std::get<std::string>(right)) > 0;
       break;
     }
-    throw error(op, "Operands must all be numbers or strings");
+    throw RuntimeError(op, "Operands must all be numbers or strings");
   case Type::GREATER_EQUAL:
     if (check_operand_types<double>(left, right))
     {
@@ -404,7 +381,7 @@ void Interpreter::visit(Binary &visitable)
                        std::get<std::string>(right)) >= 0;
       break;
     }
-    throw error(op, "Operands must all be numbers or strings");
+    throw RuntimeError(op, "Operands must all be numbers or strings");
   case Type::LESS:
     if (check_operand_types<double>(left, right))
     {
@@ -417,7 +394,7 @@ void Interpreter::visit(Binary &visitable)
           std::get<std::string>(left).compare(std::get<std::string>(right)) < 0;
       break;
     }
-    throw error(op, "Operands must all be numbers or strings");
+    throw RuntimeError(op, "Operands must all be numbers or strings");
   case Type::LESS_EQUAL:
     if (check_operand_types<double>(left, right))
     {
@@ -430,7 +407,7 @@ void Interpreter::visit(Binary &visitable)
                        std::get<std::string>(right)) <= 0;
       break;
     }
-    throw error(op, "Operands must all be numbers or strings");
+    throw RuntimeError(op, "Operands must all be numbers or strings");
   case Type::BANG_EQUAL:
     last_value = left != right;
     break;
@@ -438,7 +415,7 @@ void Interpreter::visit(Binary &visitable)
     last_value = left == right;
     break;
   default:
-    throw error(op, "Unexpected operator in binary expression eval");
+    throw RuntimeError(op, "Unexpected operator in binary expression eval");
   }
 }
 void Interpreter::visit(Malformed &visitable)
@@ -448,28 +425,24 @@ void Interpreter::visit(Malformed &visitable)
 
   if (is_critical)
   {
-    throw error(Token(Type::_EOF, "MALFORMED", "MALFORMED", 0),
-                "Malformed expression node in AST. Syntax was not valid. Lexer "
-                "message:\t" +
-                    lexer_message);
+    throw RuntimeError(Token(Type::_EOF, "MALFORMED", "MALFORMED", 0),
+                       "Malformed expression node in AST. Syntax was not valid. Lexer "
+                       "message:\t" +
+                           lexer_message);
   }
   // Non-critical syntax errors just leave the last value untouched.
 }
 
 void Interpreter::visit(Ternary &visitable)
 {
-  Token::literal_t condition = get_evaluated_literal(visitable.child<0>());
-  Token first_op = visitable.child<1>();
+  Token::Value condition = get_evaluated(visitable.child<0>());
+  const Token &first_op = visitable.child<1>();
   const expr &first = visitable.child<2>();
   const expr &second = visitable.child<4>();
 
-  switch (first_op.type)
-  {
-  case Type::QUESTION_MARK:
-    last_value = is_truthy(condition) ? get_evaluated_literal(first)
-                                      : get_evaluated_literal(second);
-    break;
-  default:
-    throw error(first_op, "Unknown token type in ternary operator.");
-  }
+  if (first_op.type == Type::QUESTION_MARK)
+    last_value = is_truthy(condition) ? get_evaluated(first)
+                                      : get_evaluated(second);
+  else
+    throw RuntimeError(first_op, "Unknown token type in ternary operator.");
 }
