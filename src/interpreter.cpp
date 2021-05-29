@@ -220,7 +220,7 @@ void Interpreter::visit(Call &visitable)
 {
   Token::Value callee = get_evaluated(visitable.child<0>());
 
-  const auto callable = [this, &visitable](Token::Value callee)
+  const auto callable = [&visitable, &callee]()
   {
     if (std::holds_alternative<std::shared_ptr<Callable>>(callee) ||
         std::holds_alternative<std::shared_ptr<Function>>(callee))
@@ -229,7 +229,7 @@ void Interpreter::visit(Call &visitable)
     }
     throw RuntimeError(visitable.child<1>(),
                        "Can only call functions and classes.");
-  }(visitable.child<0>());
+  }();
 
   // Check arity (number of arguments)
   if (visitable.child<2>().size() != callable->arity())
@@ -263,12 +263,13 @@ void Interpreter::visit(Logical &visitable)
 {
   Token::Value lhs = get_evaluated(visitable.child<0>());
   const Token &op = visitable.child<1>();
-  if (op.type == Type::OR && is_truthy(lhs))
+  if (op.type == Type::OR)
   {
-    last_value = lhs;
+    if (is_truthy(lhs))
+      last_value = lhs;
     return;
   }
-  if (!is_truthy(lhs))
+  else if (!is_truthy(lhs))
   {
     last_value = lhs;
     return;
