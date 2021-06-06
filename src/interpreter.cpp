@@ -24,7 +24,13 @@ void Interpreter::interpret(const std::vector<stmt> &statements)
     for (const stmt &statement : statements)
     {
       execute(statement);
+
+      LOG_INFO("Last value after stmt: ", last_value);
     }
+  }
+  catch (const Return &top_level_return)
+  {
+    out_stream << "Program exited by returning: " << top_level_return.val << "\n";
   }
   catch (const RuntimeError &err)
   {
@@ -51,7 +57,7 @@ void Interpreter::execute_block(const std::vector<stmt> &body,
   }
   catch (...)
   {
-    LOG_INFO("Caught exception in execute_block()");
+    LOG_INFO("Caught exception in execute_block(). Probably function return.");
     environment = original_env;
     throw;
   }
@@ -403,7 +409,7 @@ void Interpreter::visit(Binary &visitable)
   case Type::LESS_EQUAL:
     if (check_operand_types<double>(left, right))
     {
-      last_value = std::get<double>(left) < std::get<double>(right);
+      last_value = std::get<double>(left) <= std::get<double>(right);
       break;
     }
     else if (check_operand_types<std::string>(left, right))
