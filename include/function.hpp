@@ -2,12 +2,15 @@
 
 #include "callable.hpp"
 #include "stmt.hpp"
+#include "environment.hpp"
 #include <vector>
 
 class Function : public Callable
 {
 public:
-  explicit Function(const FunctionStmt *_declaration);
+  // closure is deliberately taken by value because it should not be affected by
+  // modifications after the function declaration
+  explicit Function(const FunctionStmt *_declaration, Environment closure);
 
   Token::Value
   call(Interpreter &interpreter,
@@ -18,4 +21,5 @@ public:
 
 private:
   const FunctionStmt *declaration;
+  Environment closure;
 };

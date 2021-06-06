@@ -1,3 +1,5 @@
+#pragma once
+
 #include "token.hpp"
 #include <memory>
 #include <unordered_map>

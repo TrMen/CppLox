@@ -79,7 +79,7 @@ namespace Buildin
 
         auto print_env_closure = [](Interpreter &interpreter)
         {
-            interpreter.out_stream << interpreter.environment;
+            interpreter.out_stream << interpreter.environment << std::endl;
             return NullType{};
         };
         auto print_env_buildin = std::make_shared<SimpleBuildin<decltype(print_env_closure)>>("print_env", std::move(print_env_closure));

@@ -2,8 +2,9 @@
 #include "interpreter.hpp"
 #include "logging.hpp"
 
-Function::Function(const FunctionStmt *_declaration)
-    : declaration(_declaration)
+Function::Function(const FunctionStmt *_declaration, Environment closure)
+    : declaration(_declaration),
+      closure(std::move(closure))
 {
 }
 
@@ -11,7 +12,9 @@ Token::Value
 Function::call(Interpreter &interpreter,
                const std::vector<Token::Value> &arguments)
 {
-  Environment environment{&interpreter.environment};
+  Environment environment{&closure};
+
+  LOG_DEBUG("Calling func with closure: ", environment, " enclosed by ", *environment.enclosing, " and closure: ", closure);
 
   const auto &parameters = declaration->child<1>();
 

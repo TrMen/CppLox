@@ -42,7 +42,6 @@ void Interpreter::execute_block(const std::vector<stmt> &body,
                                 Environment block_env)
 {
   Environment original_env = std::move(environment);
-  block_env.enclosing = &original_env;
   environment = std::move(block_env);
 
   LOG_DEBUG("Executing block statements with env: ", environment, " enclosed by ", *environment.enclosing);
@@ -57,7 +56,6 @@ void Interpreter::execute_block(const std::vector<stmt> &body,
   }
   catch (...)
   {
-    LOG_INFO("Caught exception in execute_block(). Probably function return.");
     environment = original_env;
     throw;
   }
@@ -146,7 +144,8 @@ void Interpreter::visit(ReturnStmt &visitable)
 void Interpreter::visit(FunctionStmt &visitable)
 {
   auto &function = visitable.child<0>();
-  function.value = std::make_shared<Function>(&visitable);
+  LOG_DEBUG("Declaring func ", function, " with env: ", environment);
+  function.value = std::make_shared<Function>(&visitable, environment);
   environment.define(function);
 }
 
