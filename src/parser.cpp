@@ -472,8 +472,18 @@ expr Parser::primary()
   {
     auto params = check(Type::PIPE) ? std::vector<Token>{} : parameters();
     consume(Type::PIPE, "Expect '|' to finish lambda parameter list");
-    consume(Type::LEFT_BRACE, "Expect '{' after lambda parameter list");
-    return new_expr<Lambda>(std::move(params), block());
+    if (match(Type::LEFT_BRACE))
+    {
+      return new_expr<Lambda>(std::move(params), block());
+    }
+    else
+    {                                    // Single-expression lambda implicitly returns its value
+      Token return_keyword = previous(); // Keep for error-reporting. Copy required here
+      stmt implicit_return = std::make_unique<ReturnStmt>(std::move(return_keyword), expression());
+      std::vector<stmt> block; // Initialization in constructor not possible because of unique_ptr
+      block.emplace_back(std::move(implicit_return));
+      return new_expr<Lambda>(std::move(params), std::move(block));
+    }
   }
 
   throw error(peek(), "Expect expression.");
