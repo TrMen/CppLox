@@ -132,16 +132,22 @@ static void assert_true(bool condition, const Token &op,
 
 //-------------Statement Visitor Methods------------------------------------
 
+void Interpreter::visit(ReturnStmt &visitable)
+{
+  // If there is no value, the Empty expression will be evaluated to NullType
+  throw Return{get_evaluated(visitable.child<1>())};
+}
+
 void Interpreter::visit(FunctionStmt &visitable)
 {
-  auto function = visitable.child<0>();
+  auto &function = visitable.child<0>();
   function.value = std::make_shared<Function>(&visitable);
   environment.define(function);
 }
 
 void Interpreter::visit(IfStmt &visitable)
 {
-  Token::Value cond = get_evaluated(visitable.child<0>());
+  auto cond = get_evaluated(visitable.child<0>());
   if (is_truthy(cond))
   {
     execute(visitable.child<1>());
@@ -225,7 +231,11 @@ void Interpreter::visit(Call &visitable)
     if (std::holds_alternative<std::shared_ptr<Callable>>(callee) ||
         std::holds_alternative<std::shared_ptr<Function>>(callee))
     {
+      if (std::holds_alternative<std::shared_ptr<Function>>(callee))
+        LOG_DEBUG("Holds alt func");
+      LOG_DEBUG("Trying to get callable", callee);
       return dynamic_cast<Callable *>(std::get<std::shared_ptr<Callable>>(callee).get());
+      LOG_DEBUG("Got callable");
     }
     throw RuntimeError(visitable.child<1>(),
                        "Can only call functions and classes.");

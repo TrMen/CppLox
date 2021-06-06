@@ -37,6 +37,7 @@ private:
   stmt if_statement();
   stmt print_statement();
   stmt expression_statement();
+  stmt return_statement();
 
   // Expressions
   expr expression();

@@ -8,8 +8,8 @@ I changed some things, so my version doesn't work exactly like the book. E.g. yo
 - `mkdir build && cd build`
 - `cmake ..`
 - `make`
-- `./MyLang` for REPL
-- `./MyLang <sourcefile>` for file interpretation
+- `./Lox` for REPL
+- `./Lox <sourcefile>` for file interpretation
 
 # Basic syntax
 Works mostly as you would expect:

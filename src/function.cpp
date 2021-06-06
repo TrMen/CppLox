@@ -22,7 +22,16 @@ Function::call(Interpreter &interpreter,
     environment.define(parameter);
   }
 
-  interpreter.execute_block(declaration->child<2>(), environment);
+  try
+  {
+    interpreter.execute_block(declaration->child<2>(), environment);
+  }
+  catch (const Interpreter::Return &returned) // Early return
+  {
+    LOG_DEBUG("Returning from fn", returned.val);
+    return returned.val;
+  }
+
   return NullType{};
 }
 

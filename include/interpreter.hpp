@@ -26,9 +26,16 @@ struct Interpreter : public Visitor_t, public StmtVisitor
 
   std::ostream &out_stream;
 
+  /// Used to unwind the interpreter execution when functions return
+  struct Return
+  {
+    Token::Value val;
+  };
+
 private:
   // Statements
-  void visit(Var &visitable) override;
+  void
+  visit(Var &visitable) override;
   void visit(MalformedStmt &visitable) override;
   void visit(Block &visitable) override;
   void visit(Print &visitable) override;
@@ -37,6 +44,7 @@ private:
   void visit(WhileStmt &visitable) override;
   void visit(EmptyStmt &visitable) override;
   void visit(FunctionStmt &visitable) override;
+  void visit(ReturnStmt &visitable) override;
 
   // Expressions
   void visit(Assign &visitable) override;

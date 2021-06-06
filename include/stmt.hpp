@@ -13,21 +13,24 @@ using stmt = std::unique_ptr<Statement>;
 template <int id, typename... Types>
 struct StmtProduction;
 
-using Print = StmtProduction<0, expr>;      //	expression (for printing)
-using StmtExpr = StmtProduction<1, expr>;   //	expression
-using Var = StmtProduction<2, Token, expr>; // id name initializer
+// clang-format off
+using Print = StmtProduction<0, expr>;                    // expression (for printing)
+using StmtExpr = StmtProduction<1, expr>;                 // expression
+using Var = StmtProduction<2, Token, expr>;               // name initializer
 using MalformedStmt =
-    StmtProduction<3, bool, std::string>;           //	is_critical message
-using Block = StmtProduction<4, std::vector<stmt>>; //	statements
+    StmtProduction<3, bool, std::string>;                 // is_critical message
+using Block = StmtProduction<4, std::vector<stmt>>;       // statements
 using IfStmt = StmtProduction<5, expr, stmt,
-                              stmt>; //	condition then-stmt	else-stmt
+                              stmt>;                      //	condition then-stmt	else-stmt
 using EmptyStmt = StmtProduction<6>;
-using WhileStmt = StmtProduction<7, expr, stmt>; //	cond body
+using WhileStmt = StmtProduction<7, expr, stmt>;          //	cond body
 using FunctionStmt =
     StmtProduction<8, Token, std::vector<Token>,
-                   std::vector<stmt>>; // name params body
+                   std::vector<stmt>>;                    // name params body
+using ReturnStmt = StmtProduction<9, Token, expr>;        // 'return' body
+// clang-format on
 
-#define TYPES Print, StmtExpr, Var, MalformedStmt, Block, IfStmt, EmptyStmt, WhileStmt, FunctionStmt
+#define TYPES Print, StmtExpr, Var, MalformedStmt, Block, IfStmt, EmptyStmt, WhileStmt, FunctionStmt, ReturnStmt
 
 template <int id, typename... Types>
 using StmtVisitable = VisitableImpl<StmtProduction<id, Types...>, TYPES>;

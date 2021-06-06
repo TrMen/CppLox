@@ -98,6 +98,8 @@ stmt Parser::statement()
     return new_stmt<Block>(block());
   if (match(Type::PRINT))
     return print_statement();
+  if (match(Type::RETURN))
+    return return_statement();
 
   return expression_statement();
 }
@@ -245,6 +247,19 @@ stmt Parser::expression_statement()
   expr value = expression();
   consume(Type::SEMICOLON, "Expect ';' after expression");
   return new_stmt<StmtExpr>(std::move(value));
+}
+
+stmt Parser::return_statement()
+{
+  Token return_keyword = previous(); // Keep for error-reporting
+  expr body = new_expr<Empty>();     // Returned value is optional.
+
+  if (!check(Type::SEMICOLON))
+    body = expression();
+
+  consume(Type::SEMICOLON, "Expect ';' after 'return' statement's expression");
+
+  return new_stmt<ReturnStmt>(std::move(return_keyword), std::move(body));
 }
 
 /** Binary left-associative productions of the form
