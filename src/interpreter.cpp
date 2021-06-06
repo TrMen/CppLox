@@ -45,7 +45,6 @@ void Interpreter::execute_block(const std::vector<stmt> &body,
   {
     for (const auto &statement : body)
     {
-      LOG_DEBUG("Executing statement in block: ", statement);
       execute(statement);
     }
     environment = std::move(original_env);
@@ -228,14 +227,9 @@ void Interpreter::visit(Call &visitable)
 
   const auto callable = [&visitable, &callee]()
   {
-    if (std::holds_alternative<std::shared_ptr<Callable>>(callee) ||
-        std::holds_alternative<std::shared_ptr<Function>>(callee))
+    if (std::holds_alternative<std::shared_ptr<Callable>>(callee))
     {
-      if (std::holds_alternative<std::shared_ptr<Function>>(callee))
-        LOG_DEBUG("Holds alt func");
-      LOG_DEBUG("Trying to get callable", callee);
       return dynamic_cast<Callable *>(std::get<std::shared_ptr<Callable>>(callee).get());
-      LOG_DEBUG("Got callable");
     }
     throw RuntimeError(visitable.child<1>(),
                        "Can only call functions and classes.");

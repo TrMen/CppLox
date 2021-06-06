@@ -28,7 +28,6 @@ Function::call(Interpreter &interpreter,
   }
   catch (const Interpreter::Return &returned) // Early return
   {
-    LOG_DEBUG("Returning from fn", returned.val);
     return returned.val;
   }
 

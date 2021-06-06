@@ -75,10 +75,6 @@ std::string stringify(const Token::Value &arg)
   {
     return std::get<std::shared_ptr<Callable>>(arg)->to_string();
   }
-  if (std::holds_alternative<std::shared_ptr<Function>>(arg))
-  {
-    return std::get<std::shared_ptr<Function>>(arg)->to_string();
-  }
 
   assert(false);
 }
