@@ -6,16 +6,16 @@
 
 using Type = Token::TokenType;
 
-//------------------Interface implementations-----------------------------
-
 Interpreter::Interpreter(std::ostream &_os, std::shared_ptr<ErrorHandler> _err_handler)
-    : out_stream(_os), err_handler(std::move(_err_handler))
+    : out_stream(_os), environment(std::make_shared<Environment>()), err_handler(std::move(_err_handler))
 {
   for (const auto &buildin : Buildin::get_buildins())
   {
-    environment.define(buildin);
+    environment->define(buildin);
   }
 }
+
+//----------Top-level interpretation, evaluation and execution methods----------
 
 void Interpreter::interpret(const std::vector<stmt> &statements)
 {
@@ -38,13 +38,12 @@ void Interpreter::interpret(const std::vector<stmt> &statements)
   }
 }
 
-void Interpreter::execute_block(const std::vector<stmt> &body,
-                                Environment block_env)
+void Interpreter::execute_block(const std::vector<stmt> &body, std::shared_ptr<Environment> enclosing_env)
 {
-  Environment original_env = std::move(environment);
-  environment = std::move(block_env);
+  auto original_env = environment;
+  environment = std::make_shared<Environment>(std::move(enclosing_env));
 
-  LOG_DEBUG("Executing block statements with env: ", environment, " enclosed by ", *environment.enclosing);
+  LOG_DEBUG("Executing block statements with env: ", *environment, " enclosed by ", *environment->enclosing);
 
   try
   {
@@ -52,85 +51,94 @@ void Interpreter::execute_block(const std::vector<stmt> &body,
     {
       execute(statement);
     }
-    environment = std::move(original_env);
   }
   catch (...)
   {
-    environment = original_env;
+    environment = std::move(original_env);
     throw;
   }
-  LOG_DEBUG("Env at and of block execution: ", environment);
+  environment = std::move(original_env);
+  LOG_DEBUG("Env at and of block execution: ", *environment);
 }
-
-//-------------Start of interpreter visitor implementation------------------
 
 void Interpreter::execute(const stmt &statement)
 {
   dynamic_cast<StmtVisitableBase &>(*statement).accept(*this);
 }
 
-//---------- Helper functions for dynamic typing ------------
-
-/* All values except NullType and the bool false are truthy, including "", 0, functions, callables*/
-static bool is_truthy(const Token::Value &value)
+/// For a node, get the value of its visit. This is required because we only
+/// have visit functions returning void
+Token::Value Interpreter::get_evaluated(const expr &node)
 {
-  bool truthy = false;
-  std::visit(
-      [&truthy](auto &&arg)
+  dynamic_cast<VisitableBase &>(*node).accept(*this);
+  return last_value;
+}
+
+//---------- Helper functions ------------
+namespace
+{
+  /* All values except NullType and the bool false are truthy, including "", 0, functions, callables*/
+  bool is_truthy(const Token::Value &value)
+  {
+    bool truthy = false;
+    std::visit(
+        [&truthy](auto &&arg)
+        {
+          using T = std::decay_t<decltype(arg)>;
+          if constexpr (std::is_same_v<T, NullType>)
+          {
+            truthy = false;
+          }
+          else if constexpr (std::is_same_v<T, bool>)
+          {
+            truthy = arg;
+          }
+          else
+          {
+            truthy = true;
+          }
+        },
+        value);
+
+    return truthy;
+  }
+
+  /// Operands are variants. Returns true only of all variants hold value_type
+  /// No operands returns true
+  template <typename value_type, typename... Types>
+  bool check_operand_types(const Types &...operands)
+  {
+    return (std::holds_alternative<value_type>(operands) && ...);
+  }
+
+  /// Throw a RuntimeError if any operand is not of value_type.
+  template <typename value_type, typename... Operands>
+  void assert_operand_types(const Token &op, const Operands &...operands)
+  {
+    if (!check_operand_types<double>(operands...))
+    {
+      if (std::is_same_v<value_type, double>)
       {
-        using T = std::decay_t<decltype(arg)>;
-        if constexpr (std::is_same_v<T, NullType>)
-        {
-          truthy = false;
-        }
-        else if constexpr (std::is_same_v<T, bool>)
-        {
-          truthy = arg;
-        }
-        else
-        {
-          truthy = true;
-        }
-      },
-      value);
-
-  return truthy;
-}
-
-/// Operands are variants. Returns true only of all variants hold value_type
-/// No operands returns true
-template <typename value_type, typename... Types>
-static bool check_operand_types(const Types &...operands)
-{
-  return (std::holds_alternative<value_type>(operands) && ...);
-}
-
-/// Throw a RuntimeError if any operand is not of value_type.
-template <typename value_type, typename... Operands>
-static void assert_operand_types(const Token &op, const Operands &...operands)
-{
-  if (!check_operand_types<double>(operands...))
-  {
-    if (std::is_same_v<value_type, double>)
-    {
-      throw RuntimeError(op, "Operands must be numbers");
+        throw RuntimeError(op, "Operands must be numbers");
+      }
+      if (std::is_same_v<value_type, std::string>)
+      {
+        throw RuntimeError(op, "Operands must be strings");
+      }
+      throw RuntimeError(op, "Operands must all be the same");
     }
-    if (std::is_same_v<value_type, std::string>)
-    {
-      throw RuntimeError(op, "Operands must be strings");
-    }
-    throw RuntimeError(op, "Operands must all be the same");
   }
-}
 
-/// Throw a runtime error if the condition is false
-static void assert_true(bool condition, const Token &op,
-                        const std::string &message)
-{
-  if (!condition)
+  /// Throw a runtime error if the condition is false
+  void assert_true(bool condition, const Token &op,
+                   const std::string &message)
   {
-    throw RuntimeError(op, message);
+    if (!condition)
+    {
+      throw RuntimeError(op, message);
+    }
   }
+
 }
 
 //-------------Statement Visitor Methods------------------------------------
@@ -146,7 +154,7 @@ void Interpreter::visit(FunctionStmt &visitable)
   auto &function = visitable.child<0>();
   LOG_DEBUG("Declaring func ", function, " with env: ", environment);
   function.value = std::make_shared<Function>(&visitable, environment);
-  environment.define(function);
+  environment->define(function);
 }
 
 void Interpreter::visit(IfStmt &visitable)
@@ -177,8 +185,7 @@ void Interpreter::visit(EmptyStmt &)
 
 void Interpreter::visit(Block &visitable)
 {
-  Environment new_env{&environment};
-  execute_block(visitable.child<0>(), std::move(new_env));
+  execute_block(visitable.child<0>(), environment);
 }
 
 void Interpreter::visit(Var &visitable)
@@ -188,7 +195,7 @@ void Interpreter::visit(Var &visitable)
   // This will correctly return NullType when the initializer is Empty
   variable.value = get_evaluated(initializer);
 
-  environment.define(variable);
+  environment->define(variable);
 }
 
 void Interpreter::visit(StmtExpr &visitable)
@@ -216,14 +223,13 @@ void Interpreter::visit(MalformedStmt &visitable)
   // Non-critical syntax errors just leave the last value untouched.
 }
 
-//-------------Expression Visitor methods------------------------------------
+//-------------Expression Visitor Methods------------------------------------
 
-/// For a node, get the value of its visit. This is required because we only
-/// have visit functions returning void
-Token::Value Interpreter::get_evaluated(const expr &node)
+void Interpreter::visit(Lambda &visitable)
 {
-  dynamic_cast<VisitableBase &>(*node).accept(*this);
-  return last_value;
+  LOG_DEBUG("Declaring lambda");
+
+  last_value = std::make_shared<Function>(&visitable, environment);
 }
 
 void Interpreter::visit(Call &visitable)
@@ -264,7 +270,7 @@ void Interpreter::visit(Assign &visitable)
   const Token &name = visitable.child<0>();
   Token::Value value = get_evaluated(visitable.child<1>());
 
-  environment.assign(name, value);
+  environment->assign(name, value);
   last_value = value;
 }
 
@@ -288,7 +294,7 @@ void Interpreter::visit(Logical &visitable)
 
 void Interpreter::visit(Variable &visitable)
 {
-  last_value = environment.get(visitable.child<0>());
+  last_value = environment->get(visitable.child<0>());
 }
 
 void Interpreter::visit(Empty &)

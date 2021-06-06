@@ -15,33 +15,33 @@ using expr = std::unique_ptr<Expr>;
 template <int id, typename... Types>
 struct Production;
 
+class Statement;
+using stmt = std::unique_ptr<Statement>;
+
 // ---------------------Alias definitions for convenience---------------------
 
-using Binary = Production<0, expr, Token, expr>; //	expr bin_op expr
-using Grouping = Production<1, expr>;            // (expr)
-using Literal = Production<2, Token::Value>;     //	value
-using Unary = Production<3, Token, expr>;        //	unary_op expr
-using Ternary =
-    Production<4, expr, Token, expr, Token, expr>;  //	expr op expr op expr
-using Malformed = Production<5, bool, std::string>; //	is_critical message
-using Variable = Production<6, Token>;              //	name
-using Empty = Production<7>;                        //	No data (for empty variable initializer)
-using Assign = Production<8, Token, expr>;          //	name value
-using Logical =
-    Production<9, expr, Token,
-               expr>; //	left op right	(where op is "and" or "or")
-using Call =
-    Production<20, expr, Token, std::vector<expr>>; //	callee paren arguments
+// clang-format off
+using Binary = Production<0, expr, Token, expr>;                       // expr bin_op expr
+using Grouping = Production<1, expr>;                                  // (expr)
+using Literal = Production<2, Token::Value>;                           // value
+using Unary = Production<3, Token, expr>;                              // unary_op expr
+using Ternary = Production<4, expr, Token, expr, Token, expr>;         // expr op expr op expr
+using Malformed = Production<5, bool, std::string>;                    // is_critical message
+using Variable = Production<6, Token>;                                 // name
+using Empty = Production<7>;                                           // No data (for empty variable initializer)
+using Assign = Production<8, Token, expr>;                             // name value
+using Logical = Production<9, expr, Token, expr>;                      // left op right	(where op is "and" or "or")
+using Call = Production<10, expr, Token, std::vector<expr>>;           // callee paren arguments
+using Lambda = Production<11, std::vector<Token>, std::vector<stmt>>;  // params body
+// clang-format on
 
-using VisitableBase =
-    Visitable<Literal, Grouping, Unary, Binary, Ternary, Malformed, Variable,
-              Empty, Assign, Logical, Call>;
+#define EXPR_TYPES Literal, Grouping, Unary, Binary, Ternary, Malformed, Variable, \
+                   Empty, Assign, Logical, Call, Lambda
+
+using VisitableBase = Visitable<EXPR_TYPES>;
 template <int id, typename... Types>
-using VisitableImpl_t =
-    VisitableImpl<Production<id, Types...>, Literal, Grouping, Unary, Binary,
-                  Ternary, Malformed, Variable, Empty, Assign, Logical, Call>;
-using Visitor_t = Visitor<Literal, Grouping, Unary, Binary, Ternary, Malformed,
-                          Variable, Empty, Assign, Logical, Call>;
+using VisitableImpl_t = VisitableImpl<Production<id, Types...>, EXPR_TYPES>;
+using Visitor_t = Visitor<EXPR_TYPES>;
 
 //--------------------End of alias definitions--------------------------------
 
@@ -71,7 +71,7 @@ public:
   template <size_t index>
   decltype(auto) child() const
   {
-    const auto elem = std::get<index>(derivatives);
+    const auto &elem = std::get<index>(derivatives);
     return elem;
   }
 

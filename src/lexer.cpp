@@ -40,6 +40,9 @@ void Lexer::scan_token()
   case '}':
     add_token(Type::RIGHT_BRACE);
     break;
+  case '|':
+    add_token(Type::PIPE);
+    break;
   case ',':
     add_token(Type::COMMA);
     break;

@@ -20,11 +20,11 @@ struct Interpreter : public Visitor_t, public StmtVisitor
 
   void execute(const stmt &statement);
 
-  Environment environment;
-
-  void execute_block(const std::vector<stmt> &body, Environment block_env);
+  void execute_block(const std::vector<stmt> &body, std::shared_ptr<Environment> enclosing_env);
 
   std::ostream &out_stream;
+
+  std::shared_ptr<Environment> environment;
 
   /// Used to unwind the interpreter execution when functions return
   struct Return
@@ -58,6 +58,7 @@ private:
   void visit(Malformed &visitable) override;
   void visit(Call &visitable) override;
   void visit(Grouping &visitable) override;
+  void visit(Lambda &visitable) override;
 
   Token::Value get_evaluated(const expr &node);
 

@@ -54,6 +54,8 @@ private:
   expr call();
   expr primary();
 
+  std::vector<Token> parameters();
+
   expr finish_call(expr callee);
 
   /// Consume the next token if it matches type, else error with message

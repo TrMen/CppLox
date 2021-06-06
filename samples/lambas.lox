@@ -1,0 +1,12 @@
+fn call(closure, arg) {
+  closure(arg);
+}
+
+call(|val| {print(val);}, 12);
+
+let printingEnv = || {
+  let i = 1;
+  printEnv(); // Prints an env with just 'i: 1'
+  };
+
+printingEnv();

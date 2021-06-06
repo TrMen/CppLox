@@ -109,25 +109,30 @@ stmt Parser::function(const std::string &kind)
   Token name = consume(Type::IDENTIFIER, "Expected valid identifier as " + kind + " name.");
   consume(Type::LEFT_PAREN, "Expect '(' after " + kind + " name.");
 
-  std::vector<Token> parameters;
-  if (!check(Type::RIGHT_PAREN))
-  {
-    do
-    {
-      if (parameters.size() >= 255)
-      {
-        error(peek(), "Cannot define more than 255 parameters.");
-      }
-      parameters.push_back(consume(Type::IDENTIFIER, "Expect parameter name."));
-    } while (match(Type::COMMA));
-  }
+  auto params = check(Type::RIGHT_PAREN) ? std::vector<Token>{} : parameters();
+
   consume(Type::RIGHT_PAREN, "Expect ')' after parameter list.");
   consume(Type::LEFT_BRACE, "Expect '{' before " + kind + " body.");
 
-  LOG_DEBUG("Fn param size at creation: ", parameters.size());
+  LOG_DEBUG("Fn param size at creation: ", params.size());
 
-  return new_stmt<FunctionStmt>(std::move(name), std::move(parameters),
+  return new_stmt<FunctionStmt>(std::move(name), std::move(params),
                                 block());
+}
+
+std::vector<Token> Parser::parameters()
+{
+  std::vector<Token> params;
+  do
+  {
+    if (params.size() >= 255)
+    {
+      error(peek(), "Cannot define more than 255 parameters.");
+    }
+    params.push_back(consume(Type::IDENTIFIER, "Expect parameter name."));
+  } while (match(Type::COMMA));
+
+  return params;
 }
 
 stmt Parser::for_statement()
@@ -269,23 +274,23 @@ stmt Parser::return_statement()
  * prod is the binary production itself
  * expr_type is the resulting derived AST type of the returned expr
  */
-template <expr (Parser::*T)(), const std::vector<Type> &matched_types,
+template <expr (Parser::*production)(), const std::vector<Type> &matched_types,
           const std::vector<Type> &error_types, typename expr_type = Binary>
 static expr left_associative_binary_production(Parser *owner)
 {
   if (owner->match(error_types))
   { // Erronous use of binary operator as unary
     Token prev = owner->previous();
-    (owner->*T)(); // Discard result
+    (owner->*production)(); // Discard result
     owner->err_handler->error(prev, "Illegal use of unary operator " + prev.lexeme);
     return new_expr<Malformed>(true, "Illegal use of unary operator " + prev.lexeme);
   }
-  expr result = (owner->*T)();
+  expr result = (owner->*production)();
 
   while (owner->match(matched_types))
   {
     Token op = owner->previous();
-    expr rhs = (owner->*T)();
+    expr rhs = (owner->*production)();
     result = new_expr<expr_type>(std::move(result), std::move(op), std::move(rhs));
   }
   return result;
@@ -302,7 +307,7 @@ expr Parser::comma_expression() { return assignment(); }
 
 expr Parser::assignment()
 {
-  expr x_value = or_expression();
+  expr x_value = ternary_conditional();
 
   if (match(Type::EQUAL))
   {
@@ -310,7 +315,7 @@ expr Parser::assignment()
     expr value = assignment();
 
     // This checks whether we can assign to the x_value.
-    auto l_value = dynamic_cast<Variable *>(x_value.get());
+    auto *l_value = dynamic_cast<Variable *>(x_value.get());
     if (l_value != nullptr)
     {
       Token name = l_value->child<0>();
@@ -394,6 +399,25 @@ expr Parser::unary()
   return call();
 }
 
+expr Parser::call()
+{
+  expr result = primary();
+
+  while (true)
+  {
+    if (match(Type::LEFT_PAREN))
+    {
+      result = finish_call(std::move(result));
+    }
+    else
+    {
+      break;
+    }
+  }
+
+  return result;
+}
+
 expr Parser::finish_call(expr callee)
 {
   std::vector<expr> arguments;
@@ -413,25 +437,6 @@ expr Parser::finish_call(expr callee)
 
   return new_expr<Call>(std::move(callee), std::move(paren),
                         std::move(arguments));
-}
-
-expr Parser::call()
-{
-  expr result = primary();
-
-  while (true)
-  {
-    if (match(Type::LEFT_PAREN))
-    {
-      result = finish_call(std::move(result));
-    }
-    else
-    {
-      break;
-    }
-  }
-
-  return result;
 }
 
 expr Parser::primary()
@@ -461,6 +466,14 @@ expr Parser::primary()
     expr middle = expression();
     consume(Type::RIGHT_PAREN, "Expected ')' after expression");
     return new_expr<Grouping>(std::move(middle));
+  }
+
+  if (match(Type::PIPE))
+  {
+    auto params = check(Type::PIPE) ? std::vector<Token>{} : parameters();
+    consume(Type::PIPE, "Expect '|' to finish lambda parameter list");
+    consume(Type::LEFT_BRACE, "Expect '{' after lambda parameter list");
+    return new_expr<Lambda>(std::move(params), block());
   }
 
   throw error(peek(), "Expect expression.");

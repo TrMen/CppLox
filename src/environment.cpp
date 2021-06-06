@@ -3,6 +3,8 @@
 #include "logging.hpp"
 #include <sstream>
 
+Environment::Environment(std::shared_ptr<Environment> _enclosing) : enclosing(std::move(_enclosing)) {}
+
 void Environment::define(Token variable)
 {
   if (variables.find(variable.lexeme) != variables.cend())

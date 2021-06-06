@@ -10,16 +10,19 @@ class Function : public Callable
 public:
   // closure is deliberately taken by value because it should not be affected by
   // modifications after the function declaration
-  explicit Function(const FunctionStmt *_declaration, Environment closure);
+  Function(const FunctionStmt *_declaration, std::shared_ptr<Environment> closure);
 
-  Token::Value
-  call(Interpreter &interpreter,
-       const std::vector<Token::Value> &arguments) override;
+  Function(const Lambda *_declaration, std::shared_ptr<Environment> closure);
+
+  Token::Value call(Interpreter &interpreter, const std::vector<Token::Value> &arguments) override;
 
   size_t arity() const override;
   std::string to_string() const override;
 
+  const std::vector<Token> &parameters() const;
+  const std::vector<stmt> &body() const;
+
 private:
-  const FunctionStmt *declaration;
-  Environment closure;
+  const std::variant<const FunctionStmt *, const Lambda *> declaration;
+  std::shared_ptr<Environment> closure;
 };

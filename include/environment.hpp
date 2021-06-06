@@ -8,7 +8,7 @@
 class Environment
 {
 public:
-  explicit Environment(Environment *_enclosing = nullptr) : enclosing(_enclosing) {}
+  explicit Environment(std::shared_ptr<Environment> _enclosing = nullptr);
 
   /// Define a new variable (or function) binding with name and value extracted from the Token.
   /// May throw RuntimeError if the name is already defined
@@ -22,7 +22,7 @@ public:
   /// May throw RuntimeError on unknown variable access.
   void assign(const Token &name, const Token::Value &value);
 
-  Environment *enclosing = nullptr;
+  std::shared_ptr<Environment> enclosing = nullptr;
 
   std::string to_string() const;
 

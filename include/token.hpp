@@ -37,6 +37,7 @@ struct Token
     STAR,
     QUESTION_MARK,
     COLON,
+    PIPE,
 
     // One or two character tokens.
     BANG,
