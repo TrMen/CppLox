@@ -1,3 +1,5 @@
+setLogLevel("warning");
+
 fn call(closure, arg) {
   closure(arg);
 }

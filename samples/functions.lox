@@ -1,3 +1,7 @@
-fn inc(i) { print(i + 1); }
+setLogLevel("warning");
+
+fn inc(i) { 
+    print(i + 1); 
+}
 
 inc(2);

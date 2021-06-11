@@ -1,0 +1,12 @@
+// Extended buildin functions beyond what the lox of the book offers
+
+// eval() allows execution of any lox source code. 
+// The return value of eval() is the value of the last statement, 
+// or nil if the evaluated code was syntactically invalid
+let x = eval("50 + 1;"); // x = 51;
+eval("print(x);"); // Eval uses the same state as the host program and has access to all its variables
+
+exit(); // Terminates the program
+print(clock()); // Gives you a timestamp
+printEnv(); // Prints all defined global and local variables
+setLogLevel("debug"); Gives some debug output about the state of the interpreter during execution

@@ -1,5 +1,3 @@
-setLogLevel("debug");
-
 fun makeCounter() {
   var i = 0;
   fun count() {
