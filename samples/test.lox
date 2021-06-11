@@ -1,0 +1,17 @@
+
+fn test(filename, expectedResult)
+{
+    let source = includeStr(filename);
+    print(source);
+    let result = eval(source);
+    print("Test result: " + result);
+    assert(result == expectedResult);
+}
+
+test("lambdas.lox", 13 + 16);
+
+test("functions.lox", 3);
+
+test("fib.lox", 55);
+
+test("nested_functions.lox", 6);

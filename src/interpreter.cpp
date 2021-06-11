@@ -1,4 +1,7 @@
 #include "interpreter.hpp"
+
+#include <filesystem>
+
 #include "callable.hpp"
 #include "function.hpp"
 #include "buildin.hpp"
@@ -7,7 +10,8 @@
 using Type = Token::TokenType;
 
 Interpreter::Interpreter(std::ostream &_os, std::shared_ptr<ErrorHandler> _err_handler)
-    : out_stream(_os), globals(std::make_shared<Environment>()), environment(globals), err_handler(std::move(_err_handler))
+    : out_stream(_os), globals(std::make_shared<Environment>()), environment(globals), err_handler(std::move(_err_handler)),
+      interpreter_path{std::filesystem::current_path()}
 {
   for (const auto &buildin : Buildin::get_buildins())
   {

@@ -40,6 +40,8 @@ struct Interpreter : public ExprVisitor, public StmtVisitor
 
   std::vector<stmt> *ast;
 
+  std::string interpreter_path;
+
 private:
   DECLARE_STMT_VISIT_METHODS
 

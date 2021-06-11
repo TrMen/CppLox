@@ -2,6 +2,8 @@
 
 #include <chrono>
 #include <unordered_map>
+#include <sstream>
+#include <filesystem>
 
 #include "logging.hpp"
 #include "error.hpp"
@@ -9,6 +11,7 @@
 #include "interpreter.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
+#include "resolver.hpp"
 
 namespace
 {
@@ -91,6 +94,14 @@ namespace
                 return NullType{};
             }
 
+            Resolver resolver{interpreter};
+            resolver.resolve(statements);
+
+            if (interpreter.err_handler->has_error())
+            {
+                return NullType{};
+            }
+
             interpreter.interpret(statements);
             return interpreter.last_value;
         }
@@ -98,6 +109,73 @@ namespace
         size_t arity() const override { return 1; }
 
         std::string to_string() const override { return "<Native fn 'eval'>"; }
+    };
+
+    struct IncludeStr : public Callable
+    {
+        Token::Value call(Interpreter &interpreter, const std::vector<Token::Value> &arguments) override
+        {
+            using Logging::LogLevel;
+            const auto &filename = arguments[0];
+
+            if (!std::holds_alternative<std::string>(filename))
+            {
+                throw RuntimeError(filename, "must be a string that specifies the name of the file to include", 0);
+            }
+
+            LOG_DEBUG("Currently interpreted path: ", interpreter.interpreter_path);
+
+            auto file = std::filesystem::path(interpreter.interpreter_path).append(std::get<std::string>(filename));
+
+            LOG_DEBUG("Requested file for includeStr(): ", file);
+
+            std::ifstream ifs{file};
+
+            std::stringstream buffer;
+            buffer << ifs.rdbuf();
+
+            if (!ifs)
+            {
+                throw RuntimeError(filename, "There was an error reading the file for includeStr()", 0);
+            }
+
+            return buffer.str();
+        }
+
+        size_t arity() const override { return 1; }
+
+        std::string to_string() const override { return "<Native fn 'includeStr'>"; }
+    };
+
+    struct Assert : public Callable
+    {
+        Token::Value call(Interpreter &, const std::vector<Token::Value> &arguments) override
+        {
+            using Logging::LogLevel;
+            const auto &condition = arguments[0];
+            const auto &message = arguments[1];
+
+            if (!std::holds_alternative<bool>(condition))
+            {
+                throw RuntimeError(condition, "must be a boolean expression that is asserted", 0);
+            }
+
+            if (!std::holds_alternative<std::string>(message))
+            {
+                throw RuntimeError(message, "must be a string that specifies what went wrong", 0);
+            }
+
+            if (!std::get<bool>(condition))
+            {
+                throw RuntimeError(condition, std::get<std::string>(message), 0);
+            }
+
+            return NullType{};
+        }
+
+        size_t arity() const override { return 2; }
+
+        std::string to_string() const override { return "<Native fn 'assert'>"; }
     };
 }
 
@@ -137,7 +215,9 @@ namespace Buildin
             {Type::FUN, "clock", std::move(clock_buildin), 0},
             {Type::FUN, "printEnv", std::move(print_env_buildin), 0},
             {Type::FUN, "exit", std::move(exit_buildin), 0},
+            {Type::FUN, "includeStr", std::make_shared<IncludeStr>(), 0},
             {Type::FUN, "setLogLevel", std::make_shared<SetLogLevel>(), 0},
+            {Type::FUN, "assert", std::make_shared<Assert>(), 0},
             {Type::FUN, "eval", std::make_shared<Eval>(), 0},
         };
     }

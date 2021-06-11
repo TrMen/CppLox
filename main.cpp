@@ -4,8 +4,9 @@
 #include <memory>
 #include <sstream>
 #include <vector>
-#include "logging.hpp"
+#include <filesystem>
 
+#include "logging.hpp"
 #include "error.hpp"
 #include "expr.hpp"
 #include "interpreter.hpp"
@@ -27,9 +28,14 @@ static void log_tokens(const std::vector<Token> &tokens)
 
 static std::shared_ptr<ErrorHandler> err_handler{std::make_shared<CerrHandler>()};
 
-static std::vector<stmt> run(const std::string &source)
+static std::vector<stmt> run(const std::string &source, std::optional<std::string> filename = std::nullopt)
 {
   static Interpreter interpreter{std::cout, err_handler};
+
+  if (filename.has_value())
+  {
+    interpreter.interpreter_path = std::filesystem::path(*filename).remove_filename();
+  }
 
   Lexer lexer{source, err_handler};
   std::vector<Token> tokens = lexer.lex();
@@ -106,7 +112,13 @@ static int run_file(const char *filename)
   std::stringstream ss{};
   ss << ifstr.rdbuf();
 
-  run(ss.str());
+  if (!ifstr)
+  {
+    LOG_ERROR("File ", filename, " could not be opened");
+    return 42;
+  }
+
+  run(ss.str(), filename);
   if (err_handler->has_error())
   {
     return 65;
