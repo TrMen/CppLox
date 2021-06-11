@@ -24,11 +24,19 @@ public:
   std::shared_ptr<ErrorHandler> err_handler;
 
 private:
+  enum class FunctionKind
+  {
+    FUNCTION,
+    METHOD
+  };
+  static std::string str(FunctionKind);
+
   // Statements
   stmt declaration();
   stmt var_declaration();
+  stmt class_declaration();
+  FunctionStmtPtr function_declaration(FunctionKind kind);
   stmt statement();
-  stmt function(const std::string &kind);
   // This returns a vector so we can inspect the statements for functions and
   // classes, rather than just evaluating the value
   std::vector<stmt> block();

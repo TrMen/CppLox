@@ -14,7 +14,7 @@ struct Callable
   virtual std::string to_string() const = 0;
 
   // Base class boilerplate
-  explicit Callable() = default;
+  Callable() = default;
   virtual ~Callable() = default;
   Callable(const Callable &) = delete;
   Callable &operator=(const Callable &) = delete;

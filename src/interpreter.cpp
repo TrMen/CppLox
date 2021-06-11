@@ -6,6 +6,7 @@
 #include "function.hpp"
 #include "buildin.hpp"
 #include "logging.hpp"
+#include "class.hpp"
 
 using Type = Token::TokenType;
 
@@ -154,10 +155,19 @@ void Interpreter::visit(ReturnStmt &node)
 
 void Interpreter::visit(FunctionStmt &node)
 {
-  auto &function = node.child<0>();
+  auto function = node.child<0>();
   LOG_DEBUG("Declaring func ", function.lexeme, " with env: ", *environment);
   function.value = std::make_shared<Function>(&node, environment);
-  environment->define(function);
+  environment->define(std ::move(function));
+}
+
+void Interpreter::visit(ClassStmt &node)
+{
+  auto class_token = node.child<0>();
+
+  class_token.value = std::make_shared<Class>(node.child<0>().lexeme);
+
+  environment->define(std::move(class_token));
 }
 
 void Interpreter::visit(IfStmt &node)

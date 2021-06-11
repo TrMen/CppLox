@@ -166,6 +166,12 @@ void Resolver::visit(ReturnStmt &node)
     resolve(node.child<1>());
 }
 
+void Resolver::visit(ClassStmt &node)
+{
+    declare(node.child<0>());
+    define(node.child<0>());
+}
+
 // ----------------------Remaining visit impls that do nothing interesting---------------------------------
 
 void Resolver::visit(ExprStmt &node)

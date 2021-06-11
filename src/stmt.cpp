@@ -14,6 +14,16 @@ std::ostream &operator<<(std::ostream &os, const stmt &rhs)
     return os;
 }
 
+std::ostream &operator<<(std::ostream &os, const std::vector<FunctionStmtPtr> &rhs)
+{
+    for (const auto &stmt : rhs)
+    {
+        stmt->print(os);
+    }
+
+    return os;
+}
+
 std::ostream &operator<<(std::ostream &os, const std::vector<stmt> &rhs)
 {
     for (const auto &stmt : rhs)

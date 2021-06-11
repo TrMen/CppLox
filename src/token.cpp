@@ -1,9 +1,12 @@
 #include "token.hpp"
+
+#include <cmath>
+#include <cassert>
+
 #include "callable.hpp"
 #include "function.hpp"
 #include "error.hpp"
-#include <cmath>
-#include <cassert>
+#include "instance.hpp"
 
 Token::Token(TokenType _type, std::string _lexeme, Value _value,
              unsigned int _line) : type(_type), lexeme(std::move(_lexeme)), value(std::move(_value)),
@@ -74,6 +77,10 @@ std::string stringify(const Token::Value &arg)
   if (std::holds_alternative<std::shared_ptr<Callable>>(arg))
   {
     return std::get<std::shared_ptr<Callable>>(arg)->to_string();
+  }
+  if (std::holds_alternative<std::shared_ptr<Instance>>(arg))
+  {
+    return std::get<std::shared_ptr<Instance>>(arg)->to_string();
   }
 
   assert(false);

@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
   Logging::set_log_level(Logging::LogLevel::warning);
   if (argc > 2)
   {
-    std::cout << "Usage: scip [script]";
+    std::cout << "Usage: Lox [script]";
     return 64;
   }
   if (argc == 2)

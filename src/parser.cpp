@@ -1,9 +1,24 @@
 #include "parser.hpp"
+
+#include <algorithm>
+#include <cassert>
+
 #include "function.hpp"
 #include "logging.hpp"
-#include <algorithm>
 
 using Type = Token::TokenType;
+
+std::string Parser::str(FunctionKind kind)
+{
+  switch (kind)
+  {
+  case Parser::FunctionKind::FUNCTION:
+    return "function";
+  case Parser::FunctionKind::METHOD:
+    return "method";
+  }
+  assert(false);
+}
 
 Parser::Parser(std::vector<Token> _tokens,
                std::shared_ptr<ErrorHandler> _err_handler)
@@ -60,9 +75,11 @@ stmt Parser::declaration()
   try
   {
     if (match(Type::FUN))
-      return function("Function");
+      return function_declaration(FunctionKind::FUNCTION);
     if (match(Type::VAR))
       return var_declaration();
+    if (match(Type::CLASS))
+      return class_declaration();
 
     return statement();
   }
@@ -104,20 +121,34 @@ stmt Parser::statement()
   return expression_statement();
 }
 
-stmt Parser::function(const std::string &kind)
+FunctionStmtPtr Parser::function_declaration(FunctionKind kind)
 {
-  Token name = consume(Type::IDENTIFIER, "Expected valid identifier as " + kind + " name.");
-  consume(Type::LEFT_PAREN, "Expect '(' after " + kind + " name.");
+  Token name = consume(Type::IDENTIFIER, "Expected valid identifier as " + str(kind) + " name.");
+  consume(Type::LEFT_PAREN, "Expect '(' after " + str(kind) + " name.");
 
   auto params = check(Type::RIGHT_PAREN) ? std::vector<Token>{} : parameters();
 
   consume(Type::RIGHT_PAREN, "Expect ')' after parameter list.");
-  consume(Type::LEFT_BRACE, "Expect '{' before " + kind + " body.");
+  consume(Type::LEFT_BRACE, "Expect '{' before " + str(kind) + " body.");
 
-  LOG_DEBUG("Fn param size at creation: ", params.size());
+  return std::make_unique<FunctionStmt>(std::move(name), std::move(params), block());
+}
 
-  return new_stmt<FunctionStmt>(std::move(name), std::move(params),
-                                block());
+stmt Parser::class_declaration()
+{
+  auto name = consume(Type::IDENTIFIER, "Expect class name after 'class' keyword");
+
+  consume(Type::LEFT_BRACE, "Expect '{' after class identifier");
+
+  std::vector<FunctionStmtPtr> methods;
+  while (!check(Type::RIGHT_BRACE) && !is_at_end())
+  {
+    methods.push_back(function_declaration(FunctionKind::METHOD));
+  }
+
+  consume(Type::RIGHT_BRACE, "Expect '}' after class body");
+
+  return new_stmt<ClassStmt>(std::move(name), std::move(methods));
 }
 
 std::vector<Token> Parser::parameters()

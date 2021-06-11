@@ -24,9 +24,12 @@ using EmptyStmt = StmtProduction<6>;
 using WhileStmt = StmtProduction<7, expr, stmt>;                                             //	cond body
 using FunctionStmt = StmtProduction<8, Token, std::vector<Token>, std::vector<stmt>>;        // name params body
 using ReturnStmt = StmtProduction<9, Token, expr>;                                           // 'return' body
+using FunctionStmtPtr = std::unique_ptr<FunctionStmt>;
+using ClassStmt = StmtProduction<10, Token, std::vector<FunctionStmtPtr>>;                        // name methods
 // clang-format on
 
-#define STMT_TYPES PrintStmt, ExprStmt, VarStmt, MalformedStmt, BlockStmt, IfStmt, EmptyStmt, WhileStmt, FunctionStmt, ReturnStmt
+#define STMT_TYPES PrintStmt, ExprStmt, VarStmt, MalformedStmt, BlockStmt, IfStmt, \
+                   EmptyStmt, WhileStmt, FunctionStmt, ReturnStmt, ClassStmt
 
 template <int id, typename... Types>
 using StmtVisitable = VisitableImpl<StmtProduction<id, Types...>, STMT_TYPES>;
@@ -77,11 +80,13 @@ struct StmtProduction : public Statement, StmtVisitable<id, Types...>
   void visit(WhileStmt &) override;     \
   void visit(EmptyStmt &) override;     \
   void visit(FunctionStmt &) override;  \
-  void visit(ReturnStmt &) override;
+  void visit(ReturnStmt &) override;    \
+  void visit(ClassStmt &) override;
 
 std::ostream &operator<<(std::ostream &os, const Statement &rhs);
 
 std::ostream &operator<<(std::ostream &os, const stmt &rhs);
+std::ostream &operator<<(std::ostream &os, const std::vector<FunctionStmtPtr> &rhs);
 std::ostream &operator<<(std::ostream &os, const std::vector<stmt> &rhs);
 
 template <typename Type, typename... arg_types>
