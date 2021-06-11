@@ -9,20 +9,22 @@
 
 class Parser;
 
-struct Interpreter : public Visitor_t, public StmtVisitor
+struct Interpreter : public ExprVisitor, public StmtVisitor
 {
   explicit Interpreter(std::ostream &_os, std::shared_ptr<ErrorHandler> _err_handler);
 
   ~Interpreter() override = default;
 
   /// Interprets a list of statements, representing a program
-  void interpret(const std::vector<stmt> &statements);
+  void interpret(std::vector<stmt> &statements);
 
   void execute(const stmt &statement);
 
   void execute_block(const std::vector<stmt> &body, std::shared_ptr<Environment> enclosing_env);
 
   std::ostream &out_stream;
+
+  const std::shared_ptr<Environment> globals;
 
   std::shared_ptr<Environment> environment;
 
@@ -32,36 +34,16 @@ struct Interpreter : public Visitor_t, public StmtVisitor
     Token::Value val;
   };
 
-private:
-  // Statements
-  void
-  visit(Var &visitable) override;
-  void visit(MalformedStmt &visitable) override;
-  void visit(Block &visitable) override;
-  void visit(Print &visitable) override;
-  void visit(StmtExpr &visitable) override;
-  void visit(IfStmt &visitable) override;
-  void visit(WhileStmt &visitable) override;
-  void visit(EmptyStmt &visitable) override;
-  void visit(FunctionStmt &visitable) override;
-  void visit(ReturnStmt &visitable) override;
-
-  // Expressions
-  void visit(Assign &visitable) override;
-  void visit(Logical &visitable) override;
-  void visit(Variable &visitable) override;
-  void visit(Empty &visitable) override;
-  void visit(Literal &visitable) override;
-  void visit(Unary &visitable) override;
-  void visit(Binary &visitable) override;
-  void visit(Ternary &visitable) override;
-  void visit(Malformed &visitable) override;
-  void visit(Call &visitable) override;
-  void visit(Grouping &visitable) override;
-  void visit(Lambda &visitable) override;
-
-  Token::Value get_evaluated(const expr &node);
+  const std::shared_ptr<ErrorHandler> err_handler;
 
   Token::Value last_value;
-  const std::shared_ptr<ErrorHandler> err_handler;
+
+  std::vector<stmt> *ast;
+
+private:
+  DECLARE_STMT_VISIT_METHODS
+
+  DECLARE_EXPR_VISIT_METHODS
+
+  Token::Value get_evaluated(const expr &node);
 };

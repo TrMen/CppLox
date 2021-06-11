@@ -15,18 +15,27 @@ public:
   void define(Token variable);
 
   /// Get a variable value by the name of the supplied token.
-  /// May throw RuntimeError on unknown variable access.
+  /// @throws RuntimeError on unknown variable access.
   Token::Value get(const Token &token) const;
 
+  /// Get a variable value by the name.
+  /// This assumes the variable is found in the index'th nested environment
+  /// Unlike for get(), this variable must be present
+  Token::Value get_at(size_t depth, const std::string &name) const;
+
   /// Assign a new value to an existing variable.
-  /// May throw RuntimeError on unknown variable access.
+  /// @throws RuntimeError on unknown variable access.
   void assign(const Token &name, const Token::Value &value);
+
+  /// Assign a new value to an existing variable.
+  /// This assumes the variable is found in the index'th nested environment
+  /// Unlike for assign(), this variable must be present
+  void assign_at(size_t depth, const std::string &name, Token::Value value);
 
   std::shared_ptr<Environment> enclosing = nullptr;
 
   std::string to_string() const;
 
-private:
   std::unordered_map<std::string, Token::Value> variables;
 };
 

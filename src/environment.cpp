@@ -1,7 +1,10 @@
 #include "environment.hpp"
+
+#include <sstream>
+#include <cassert>
+
 #include "error.hpp"
 #include "logging.hpp"
-#include <sstream>
 
 Environment::Environment(std::shared_ptr<Environment> _enclosing) : enclosing(std::move(_enclosing)) {}
 
@@ -17,7 +20,7 @@ void Environment::define(Token variable)
 Token::Value Environment::get(const Token &token) const
 {
   auto elem = variables.find(token.lexeme);
-  LOG_DEBUG("Getting variable ", token.lexeme);
+  LOG_DEBUG("Getting variable ", token.lexeme, " from : ", *this);
   if (elem != variables.cend())
   {
     return elem->second;
@@ -27,6 +30,27 @@ Token::Value Environment::get(const Token &token) const
     return enclosing->get(token);
   }
   throw RuntimeError(token, "Cannot access undefined identifier '" + token.lexeme + "'.");
+}
+
+namespace
+{
+  const Environment *ancestor(const Environment *env, size_t depth)
+  {
+    while (depth > 0)
+    {
+      env = env->enclosing.get();
+      assert(env != nullptr);
+      --depth;
+    }
+    return env;
+  }
+}
+
+Token::Value Environment::get_at(size_t depth, const std::string &name) const
+{
+  LOG_DEBUG("Get ", name, " at depth: ", depth, " with env:", depth, *ancestor(this, depth));
+  // Existence must be ensured by resolver
+  return ancestor(this, depth)->variables.at(name);
 }
 
 void Environment::assign(const Token &token, const Token::Value &value)
@@ -41,6 +65,13 @@ void Environment::assign(const Token &token, const Token::Value &value)
     throw RuntimeError(token, "Cannot assign to undefined identifier '" + token.lexeme + "'.");
   }
   elem->second = value;
+}
+
+void Environment::assign_at(size_t depth, const std::string &name, Token::Value value)
+{
+  LOG_DEBUG("Assign at: ", *ancestor(this, depth));
+  // const-cast here is fine since we know the original object was non-const. Reduces code duplication
+  const_cast<Environment *>(ancestor(this, depth))->variables.at(name) = std::move(value);
 }
 
 std::string Environment::to_string() const

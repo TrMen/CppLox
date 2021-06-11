@@ -83,7 +83,7 @@ stmt Parser::var_declaration()
     initializer = expression();
   }
   consume(Type::SEMICOLON, "Expect ';' after variable declaration");
-  return new_stmt<Var>(std::move(name), std::move(initializer));
+  return new_stmt<VarStmt>(std::move(name), std::move(initializer));
 }
 
 stmt Parser::statement()
@@ -95,7 +95,7 @@ stmt Parser::statement()
   if (match(Type::WHILE))
     return while_statement();
   if (match(Type::LEFT_BRACE))
-    return new_stmt<Block>(block());
+    return new_stmt<BlockStmt>(block());
   if (match(Type::PRINT))
     return print_statement();
   if (match(Type::RETURN))
@@ -156,7 +156,7 @@ stmt Parser::for_statement()
   // We don't need to match a ; here because all stmts have one
 
   // Second clause: condition
-  expr condition;
+  expr condition = nullptr;
   if (!check(Type::SEMICOLON))
   {
     condition = expression();
@@ -164,7 +164,7 @@ stmt Parser::for_statement()
   consume(Type::SEMICOLON, "Expect ';' after loop condition");
 
   // Third clause: increment
-  expr increment;
+  expr increment = nullptr;
   if (!check(Type::RIGHT_PAREN))
   {
     increment = expression();
@@ -178,9 +178,9 @@ stmt Parser::for_statement()
   { // Add increment into while loop body
     std::vector<stmt> body_statements;
     body_statements.push_back(std::move(body));
-    body_statements.push_back(new_stmt<StmtExpr>(std::move(increment)));
+    body_statements.push_back(new_stmt<ExprStmt>(std::move(increment)));
 
-    body = new_stmt<Block>(std::move(body_statements));
+    body = new_stmt<BlockStmt>(std::move(body_statements));
   }
 
   if (condition == nullptr)
@@ -194,7 +194,7 @@ stmt Parser::for_statement()
     std::vector<stmt> full_statements;
     full_statements.push_back(std::move(initializer));
     full_statements.push_back(std::move(body));
-    body = new_stmt<Block>(std::move(full_statements));
+    body = new_stmt<BlockStmt>(std::move(full_statements));
   }
 
   return body;
@@ -244,14 +244,14 @@ stmt Parser::print_statement()
 {
   expr value = expression();
   consume(Type::SEMICOLON, "Expect ';' after statement");
-  return new_stmt<Print>(std::move(value));
+  return new_stmt<PrintStmt>(std::move(value));
 }
 
 stmt Parser::expression_statement()
 {
   expr value = expression();
   consume(Type::SEMICOLON, "Expect ';' after expression");
-  return new_stmt<StmtExpr>(std::move(value));
+  return new_stmt<ExprStmt>(std::move(value));
 }
 
 stmt Parser::return_statement()

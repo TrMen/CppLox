@@ -42,7 +42,7 @@ Token::Value Function::call(Interpreter &interpreter, const std::vector<Token::V
 {
   auto environment = std::make_shared<Environment>(closure);
 
-  LOG_DEBUG("Calling func with closure: ", *environment, " enclosed by ", *environment->enclosing, " and closure: ", closure);
+  LOG_DEBUG("Calling func with closure: ", *environment, " enclosed by ", *environment->enclosing);
 
   const auto &params = parameters();
 
@@ -52,6 +52,8 @@ Token::Value Function::call(Interpreter &interpreter, const std::vector<Token::V
     parameter.value = arguments[i];
     environment->define(parameter);
   }
+
+  LOG_DEBUG("Fn env after defining params: ", *environment);
 
   try
   {

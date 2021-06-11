@@ -1,10 +1,14 @@
 #include "buildin.hpp"
+
 #include <chrono>
+#include <unordered_map>
+
 #include "logging.hpp"
 #include "error.hpp"
 #include "callable.hpp"
 #include "interpreter.hpp"
-#include <unordered_map>
+#include "lexer.hpp"
+#include "parser.hpp"
 
 namespace
 {
@@ -33,8 +37,7 @@ namespace
 
     struct SetLogLevel : public Callable
     {
-        Token::Value call(Interpreter &,
-                          const std::vector<Token::Value> &arguments) override
+        Token::Value call(Interpreter &, const std::vector<Token::Value> &arguments) override
         {
             using Logging::LogLevel;
             const auto &log_level = arguments[0];
@@ -60,6 +63,42 @@ namespace
 
         std::string to_string() const override { return "<Native fn 'setLogLevel'>"; }
     };
+
+    struct Eval : public Callable
+    {
+        Token::Value call(Interpreter &interpreter, const std::vector<Token::Value> &arguments) override
+        {
+            using Logging::LogLevel;
+            const auto &source = arguments[0];
+
+            if (!std::holds_alternative<std::string>(source))
+            {
+                throw RuntimeError(source, "eval()'s first argument must be a string containing the source code", 0);
+            }
+
+            Lexer lexer{std::get<std::string>(source), interpreter.err_handler};
+            auto tokens = lexer.lex();
+            if (interpreter.err_handler->has_error())
+            {
+                return NullType{}; // Error already reported, but eval needs to be stopped
+            }
+
+            Parser parser{tokens, interpreter.err_handler};
+            auto statements = parser.parse();
+
+            if (interpreter.err_handler->has_error())
+            {
+                return NullType{};
+            }
+
+            interpreter.interpret(statements);
+            return interpreter.last_value;
+        }
+
+        size_t arity() const override { return 1; }
+
+        std::string to_string() const override { return "<Native fn 'eval'>"; }
+    };
 }
 
 namespace Buildin
@@ -79,7 +118,10 @@ namespace Buildin
 
         auto print_env_closure = [](Interpreter &interpreter)
         {
-            interpreter.out_stream << *interpreter.environment << std::endl;
+            interpreter.out_stream << "Globals: \n"
+                                   << *interpreter.globals << std::endl;
+            interpreter.out_stream << "Locals: \n"
+                                   << *interpreter.environment << std::endl;
             return NullType{};
         };
         auto print_env_buildin = std::make_shared<SimpleBuildin<decltype(print_env_closure)>>("print_env", std::move(print_env_closure));
@@ -96,6 +138,7 @@ namespace Buildin
             {Type::FUN, "printEnv", std::move(print_env_buildin), 0},
             {Type::FUN, "exit", std::move(exit_buildin), 0},
             {Type::FUN, "setLogLevel", std::make_shared<SetLogLevel>(), 0},
+            {Type::FUN, "eval", std::make_shared<Eval>(), 0},
         };
     }
 }

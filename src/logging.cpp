@@ -21,9 +21,10 @@ namespace Logging
         assert(false);
     }
 
-    void newline()
+    void newline(LogLevel level)
     {
-        std::cout << std::endl;
+        if (static_cast<int>(level) >= static_cast<int>(get_log_level()))
+            std::cout << std::endl;
     }
 
     static LogLevel log_level = LogLevel::warning;

@@ -13,6 +13,16 @@ RuntimeError::RuntimeError(Token::Value value, const std::string &msg, unsigned 
                          std::to_string(line) + ": " + msg),
       token(Token{Token::TokenType::NIL, "RUNTIME_ERROR", value, line}) {}
 
+CompiletimeError::CompiletimeError(Token _token, const std::string &msg)
+    : std::runtime_error("Compile-time error at: '" + _token.lexeme + "' in line " +
+                         std::to_string(_token.line) + ": " + msg),
+      token(std::move(_token)) {}
+
+CompiletimeError::CompiletimeError(Token::Value value, const std::string &msg, unsigned int line)
+    : std::runtime_error("Compile-time error at: '" + stringify(value) + "' in line " +
+                         std::to_string(line) + ": " + msg),
+      token(Token{Token::TokenType::NIL, "COMPILETIME_ERROR", value, line}) {}
+
 //--------------------Error-handler---------------------------------------
 ErrorHandler::~ErrorHandler() = default;
 

@@ -14,28 +14,24 @@ template <int id, typename... Types>
 struct StmtProduction;
 
 // clang-format off
-using Print = StmtProduction<0, expr>;                    // expression (for printing)
-using StmtExpr = StmtProduction<1, expr>;                 // expression
-using Var = StmtProduction<2, Token, expr>;               // name initializer
-using MalformedStmt =
-    StmtProduction<3, bool, std::string>;                 // is_critical message
-using Block = StmtProduction<4, std::vector<stmt>>;       // statements
-using IfStmt = StmtProduction<5, expr, stmt,
-                              stmt>;                      //	condition then-stmt	else-stmt
+using PrintStmt = StmtProduction<0, expr>;                                                   // expression (for printing)
+using ExprStmt = StmtProduction<1, expr>;                                                    // expression
+using VarStmt = StmtProduction<2, Token, expr>;                                              // name initializer
+using MalformedStmt = StmtProduction<3, bool, std::string>;                                  // is_critical message
+using BlockStmt = StmtProduction<4, std::vector<stmt>>;                                      // statements
+using IfStmt = StmtProduction<5, expr, stmt, stmt>;                                          //	condition then-stmt	else-stmt
 using EmptyStmt = StmtProduction<6>;
-using WhileStmt = StmtProduction<7, expr, stmt>;          //	cond body
-using FunctionStmt =
-    StmtProduction<8, Token, std::vector<Token>,
-                   std::vector<stmt>>;                    // name params body
-using ReturnStmt = StmtProduction<9, Token, expr>;        // 'return' body
+using WhileStmt = StmtProduction<7, expr, stmt>;                                             //	cond body
+using FunctionStmt = StmtProduction<8, Token, std::vector<Token>, std::vector<stmt>>;        // name params body
+using ReturnStmt = StmtProduction<9, Token, expr>;                                           // 'return' body
 // clang-format on
 
-#define TYPES Print, StmtExpr, Var, MalformedStmt, Block, IfStmt, EmptyStmt, WhileStmt, FunctionStmt, ReturnStmt
+#define STMT_TYPES PrintStmt, ExprStmt, VarStmt, MalformedStmt, BlockStmt, IfStmt, EmptyStmt, WhileStmt, FunctionStmt, ReturnStmt
 
 template <int id, typename... Types>
-using StmtVisitable = VisitableImpl<StmtProduction<id, Types...>, TYPES>;
-using StmtVisitor = Visitor<TYPES>;
-using StmtVisitableBase = Visitable<TYPES>;
+using StmtVisitable = VisitableImpl<StmtProduction<id, Types...>, STMT_TYPES>;
+using StmtVisitor = Visitor<STMT_TYPES>;
+using StmtVisitableBase = Visitable<STMT_TYPES>;
 
 /// A production for statements.
 /// id is for disambiguation for identical template args
@@ -70,6 +66,18 @@ struct StmtProduction : public Statement, StmtVisitable<id, Types...>
 
   std::tuple<std::remove_reference_t<Types>...> derivatives;
 };
+
+#define DECLARE_STMT_VISIT_METHODS      \
+  void visit(VarStmt &) override;       \
+  void visit(MalformedStmt &) override; \
+  void visit(BlockStmt &) override;     \
+  void visit(PrintStmt &) override;     \
+  void visit(ExprStmt &) override;      \
+  void visit(IfStmt &) override;        \
+  void visit(WhileStmt &) override;     \
+  void visit(EmptyStmt &) override;     \
+  void visit(FunctionStmt &) override;  \
+  void visit(ReturnStmt &) override;
 
 std::ostream &operator<<(std::ostream &os, const Statement &rhs);
 

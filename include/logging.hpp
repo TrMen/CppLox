@@ -33,7 +33,7 @@ namespace Logging
         }
     }
 
-    void newline();
+    void newline(LogLevel);
 }
 
 // Filename without full path

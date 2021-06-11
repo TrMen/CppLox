@@ -7,30 +7,28 @@
 using Type = Token::TokenType;
 
 Interpreter::Interpreter(std::ostream &_os, std::shared_ptr<ErrorHandler> _err_handler)
-    : out_stream(_os), environment(std::make_shared<Environment>()), err_handler(std::move(_err_handler))
+    : out_stream(_os), globals(std::make_shared<Environment>()), environment(globals), err_handler(std::move(_err_handler))
 {
   for (const auto &buildin : Buildin::get_buildins())
   {
-    environment->define(buildin);
+    globals->define(buildin);
   }
 }
 
 //----------Top-level interpretation, evaluation and execution methods----------
 
-void Interpreter::interpret(const std::vector<stmt> &statements)
+void Interpreter::interpret(std::vector<stmt> &statements)
 {
+  ast = &statements;
+
   try
   {
-    for (const stmt &statement : statements)
+    for (stmt &statement : statements)
     {
       execute(statement);
 
       LOG_INFO("Last value after stmt: ", last_value);
     }
-  }
-  catch (const Return &top_level_return)
-  {
-    out_stream << "Program exited by returning: " << top_level_return.val << "\n";
   }
   catch (const RuntimeError &err)
   {
@@ -54,6 +52,7 @@ void Interpreter::execute_block(const std::vector<stmt> &body, std::shared_ptr<E
   }
   catch (...)
   {
+    LOG_DEBUG("Caught exception in block. Restoring original env.");
     environment = std::move(original_env);
     throw;
   }
@@ -68,9 +67,9 @@ void Interpreter::execute(const stmt &statement)
 
 /// For a node, get the value of its visit. This is required because we only
 /// have visit functions returning void
-Token::Value Interpreter::get_evaluated(const expr &node)
+Token::Value Interpreter::get_evaluated(const expr &expression)
 {
-  dynamic_cast<VisitableBase &>(*node).accept(*this);
+  dynamic_cast<ExprVisitableBase &>(*expression).accept(*this);
   return last_value;
 }
 
@@ -143,38 +142,38 @@ namespace
 
 //-------------Statement Visitor Methods------------------------------------
 
-void Interpreter::visit(ReturnStmt &visitable)
+void Interpreter::visit(ReturnStmt &node)
 {
   // If there is no value, the Empty expression will be evaluated to NullType
-  throw Return{get_evaluated(visitable.child<1>())};
+  throw Return{get_evaluated(node.child<1>())};
 }
 
-void Interpreter::visit(FunctionStmt &visitable)
+void Interpreter::visit(FunctionStmt &node)
 {
-  auto &function = visitable.child<0>();
-  LOG_DEBUG("Declaring func ", function, " with env: ", environment);
-  function.value = std::make_shared<Function>(&visitable, environment);
+  auto &function = node.child<0>();
+  LOG_DEBUG("Declaring func ", function.lexeme, " with env: ", *environment);
+  function.value = std::make_shared<Function>(&node, environment);
   environment->define(function);
 }
 
-void Interpreter::visit(IfStmt &visitable)
+void Interpreter::visit(IfStmt &node)
 {
-  auto cond = get_evaluated(visitable.child<0>());
+  auto cond = get_evaluated(node.child<0>());
   if (is_truthy(cond))
   {
-    execute(visitable.child<1>());
+    execute(node.child<1>());
   }
   else
   { // This correctly evaluates nothing with EmtpyStmt as else stmt (no else)
-    execute(visitable.child<2>());
+    execute(node.child<2>());
   }
 }
 
-void Interpreter::visit(WhileStmt &visitable)
+void Interpreter::visit(WhileStmt &node)
 {
-  while (is_truthy(get_evaluated(visitable.child<0>())))
+  while (is_truthy(get_evaluated(node.child<0>())))
   {
-    execute(visitable.child<1>());
+    execute(node.child<1>());
   }
 }
 
@@ -183,35 +182,35 @@ void Interpreter::visit(EmptyStmt &)
   last_value = NullType();
 }
 
-void Interpreter::visit(Block &visitable)
+void Interpreter::visit(BlockStmt &node)
 {
-  execute_block(visitable.child<0>(), environment);
+  execute_block(node.child<0>(), environment);
 }
 
-void Interpreter::visit(Var &visitable)
+void Interpreter::visit(VarStmt &node)
 {
-  auto variable = visitable.child<0>();
-  const expr &initializer = visitable.child<1>();
+  auto variable = node.child<0>();
+  const expr &initializer = node.child<1>();
   // This will correctly return NullType when the initializer is Empty
   variable.value = get_evaluated(initializer);
 
   environment->define(variable);
 }
 
-void Interpreter::visit(StmtExpr &visitable)
+void Interpreter::visit(ExprStmt &node)
 {
-  get_evaluated(visitable.child<0>());
+  get_evaluated(node.child<0>());
 }
 
-void Interpreter::visit(Print &visitable)
+void Interpreter::visit(PrintStmt &node)
 {
-  out_stream << get_evaluated(visitable.child<0>()) << std::endl;
+  out_stream << get_evaluated(node.child<0>()) << std::endl;
 }
 
-void Interpreter::visit(MalformedStmt &visitable)
+void Interpreter::visit(MalformedStmt &node)
 {
-  bool is_critical = visitable.child<0>();
-  std::string lexer_message = visitable.child<1>();
+  bool is_critical = node.child<0>();
+  std::string lexer_message = node.child<1>();
 
   if (is_critical)
   {
@@ -225,39 +224,39 @@ void Interpreter::visit(MalformedStmt &visitable)
 
 //-------------Expression Visitor Methods------------------------------------
 
-void Interpreter::visit(Lambda &visitable)
+void Interpreter::visit(Lambda &node)
 {
   LOG_DEBUG("Declaring lambda");
 
-  last_value = std::make_shared<Function>(&visitable, environment);
+  last_value = std::make_shared<Function>(&node, environment);
 }
 
-void Interpreter::visit(Call &visitable)
+void Interpreter::visit(Call &node)
 {
-  Token::Value callee = get_evaluated(visitable.child<0>());
+  auto callee = get_evaluated(node.child<0>());
 
-  const auto callable = [&visitable, &callee]()
+  const auto callable = [&node, &callee]()
   {
     if (std::holds_alternative<std::shared_ptr<Callable>>(callee))
     {
       return dynamic_cast<Callable *>(std::get<std::shared_ptr<Callable>>(callee).get());
     }
-    throw RuntimeError(visitable.child<1>(),
+    throw RuntimeError(node.child<1>(),
                        "Can only call functions and classes.");
   }();
 
   // Check arity (number of arguments)
-  if (visitable.child<2>().size() != callable->arity())
+  if (node.child<2>().size() != callable->arity())
   {
-    throw RuntimeError(visitable.child<1>(),
+    throw RuntimeError(node.child<1>(),
                        "Expected " + std::to_string(callable->arity()) +
                            " arguments but got " +
-                           std::to_string(visitable.child<2>().size()) + ".");
+                           std::to_string(node.child<2>().size()) + ".");
   }
 
   // Evaluate arguments
   std::vector<Token::Value> arguments;
-  for (const auto &argument : visitable.child<2>())
+  for (const auto &argument : node.child<2>())
   {
     arguments.push_back(get_evaluated(argument));
   }
@@ -265,19 +264,27 @@ void Interpreter::visit(Call &visitable)
   last_value = callable->call(*this, arguments);
 }
 
-void Interpreter::visit(Assign &visitable)
+void Interpreter::visit(Assign &node)
 {
-  const Token &name = visitable.child<0>();
-  Token::Value value = get_evaluated(visitable.child<1>());
+  Token::Value value = get_evaluated(node.child<1>());
 
-  environment->assign(name, value);
-  last_value = value;
+  const auto &identifier = node.child<0>();
+  if (node.depth.has_value())
+  {
+    environment->assign_at(*node.depth, identifier.lexeme, value);
+  }
+  else
+  {
+    globals->assign(identifier, value);
+  }
+
+  last_value = std::move(value);
 }
 
-void Interpreter::visit(Logical &visitable)
+void Interpreter::visit(Logical &node)
 {
-  Token::Value lhs = get_evaluated(visitable.child<0>());
-  const Token &op = visitable.child<1>();
+  Token::Value lhs = get_evaluated(node.child<0>());
+  const Token &op = node.child<1>();
   if (op.type == Type::OR)
   {
     if (is_truthy(lhs))
@@ -289,12 +296,22 @@ void Interpreter::visit(Logical &visitable)
     last_value = lhs;
     return;
   }
-  last_value = get_evaluated(visitable.child<2>());
+  last_value = get_evaluated(node.child<2>());
 }
 
-void Interpreter::visit(Variable &visitable)
+void Interpreter::visit(Variable &node)
 {
-  last_value = environment->get(visitable.child<0>());
+  const auto &identifier = node.child<0>();
+
+  if (node.depth.has_value())
+  {
+    LOG_DEBUG("Node ", node.child<0>(), " has depth: ", *node.depth);
+    last_value = environment->get_at(*node.depth, identifier.lexeme);
+  }
+  else
+  {
+    last_value = globals->get(identifier);
+  }
 }
 
 void Interpreter::visit(Empty &)
@@ -303,21 +320,21 @@ void Interpreter::visit(Empty &)
   last_value = NullType();
 }
 
-void Interpreter::visit(Literal &visitable)
+void Interpreter::visit(Literal &node)
 {
-  last_value = visitable.child<0>();
+  last_value = node.child<0>();
 }
 
-void Interpreter::visit(Grouping &visitable)
+void Interpreter::visit(Grouping &node)
 {
-  last_value = get_evaluated(visitable.child<0>());
+  last_value = get_evaluated(node.child<0>());
 }
 
-void Interpreter::visit(Unary &visitable)
+void Interpreter::visit(Unary &node)
 {
-  Token::Value value = get_evaluated(visitable.child<1>());
+  Token::Value value = get_evaluated(node.child<1>());
 
-  const Token &op = visitable.child<0>();
+  const Token &op = node.child<0>();
 
   switch (op.type)
   {
@@ -333,13 +350,13 @@ void Interpreter::visit(Unary &visitable)
   }
 }
 
-void Interpreter::visit(Binary &visitable)
+void Interpreter::visit(Binary &node)
 {
   // This implementation defines left-to-right evaluation of binary
   // expressions
-  Token::Value left = get_evaluated(visitable.child<0>());
-  const Token &op = visitable.child<1>();
-  Token::Value right = get_evaluated(visitable.child<2>());
+  Token::Value left = get_evaluated(node.child<0>());
+  const Token &op = node.child<1>();
+  Token::Value right = get_evaluated(node.child<2>());
 
   switch (op.type)
   {
@@ -434,27 +451,25 @@ void Interpreter::visit(Binary &visitable)
     throw RuntimeError(op, "Unexpected operator in binary expression eval");
   }
 }
-void Interpreter::visit(Malformed &visitable)
+void Interpreter::visit(Malformed &node)
 {
-  bool is_critical = visitable.child<0>();
-  std::string lexer_message = visitable.child<1>();
+  bool is_critical = node.child<0>();
+  std::string lexer_message = node.child<1>();
 
   if (is_critical)
   {
     throw RuntimeError(Token(Type::_EOF, "MALFORMED", "MALFORMED", 0),
-                       "Malformed expression node in AST. Syntax was not valid. Lexer "
-                       "message:\t" +
-                           lexer_message);
+                       "Malformed expression node in AST. Syntax was not valid. Lexer message:\t" + lexer_message);
   }
   // Non-critical syntax errors just leave the last value untouched.
 }
 
-void Interpreter::visit(Ternary &visitable)
+void Interpreter::visit(Ternary &node)
 {
-  Token::Value condition = get_evaluated(visitable.child<0>());
-  const Token &first_op = visitable.child<1>();
-  const expr &first = visitable.child<2>();
-  const expr &second = visitable.child<4>();
+  Token::Value condition = get_evaluated(node.child<0>());
+  const Token &first_op = node.child<1>();
+  const expr &first = node.child<2>();
+  const expr &second = node.child<4>();
 
   if (first_op.type == Type::QUESTION_MARK)
     last_value = is_truthy(condition) ? get_evaluated(first)

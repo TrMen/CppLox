@@ -1,8 +1,3 @@
-#include "error.hpp"
-#include "expr.hpp"
-#include "interpreter.hpp"
-#include "lexer.hpp"
-#include "parser.hpp"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -10,6 +5,13 @@
 #include <sstream>
 #include <vector>
 #include "logging.hpp"
+
+#include "error.hpp"
+#include "expr.hpp"
+#include "interpreter.hpp"
+#include "lexer.hpp"
+#include "parser.hpp"
+#include "resolver.hpp"
 
 static void log_tokens(const std::vector<Token> &tokens)
 {
@@ -47,9 +49,22 @@ static std::vector<stmt> run(const std::string &source)
     return {};
   }
 
+  Resolver resolver{interpreter};
+  resolver.resolve(statements);
+
+  if (err_handler->has_error())
+  {
+    return {};
+  }
+
   try
   {
     interpreter.interpret(statements);
+
+    if (err_handler->has_runtime_error())
+    {
+      return {};
+    }
   }
   catch (const Exit &e)
   {
@@ -57,7 +72,7 @@ static std::vector<stmt> run(const std::string &source)
     std::exit(0);
   }
 
-  Logging::newline();
+  Logging::newline(Logging::LogLevel::debug);
 
   return statements;
 }

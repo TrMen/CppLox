@@ -20,6 +20,15 @@ struct RuntimeError : public std::runtime_error
   const Token token;
 };
 
+struct CompiletimeError : public std::runtime_error
+{
+  CompiletimeError(Token _token, const std::string &msg);
+
+  CompiletimeError(Token::Value value, const std::string &msg, unsigned int line);
+
+  const Token token;
+};
+
 class ErrorHandler
 {
 public:
