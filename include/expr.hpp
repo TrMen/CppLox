@@ -41,10 +41,11 @@ using Call = ExprProduction<10, expr, Token, std::vector<expr>>;           // ca
 using Lambda = ExprProduction<11, std::vector<Token>, std::vector<stmt>>;  // params body
 using Get = ExprProduction<12, expr, Token>;                               // object name
 using Set = ExprProduction<13, expr, Token, expr>;                         // object name value
+using This = ExprProduction<14, Token>;                                    // 'this'
 // clang-format on
 
 #define EXPR_TYPES Literal, Grouping, Unary, Binary, Ternary, Malformed, Variable, \
-                   Empty, Assign, Logical, Call, Lambda, Get, Set
+                   Empty, Assign, Logical, Call, Lambda, Get, Set, This
 
 using ExprVisitableBase = Visitable<EXPR_TYPES>;
 template <int id, typename... Types>
@@ -105,7 +106,8 @@ std::ostream &operator<<(std::ostream &os, const expr &rhs);
   void visit(Grouping &) override;  \
   void visit(Lambda &) override;    \
   void visit(Get &) override;       \
-  void visit(Set &) override;
+  void visit(Set &) override;       \
+  void visit(This &) override;
 
 template <typename Type, typename... arg_types>
 expr new_expr(arg_types &&...args)

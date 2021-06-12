@@ -17,6 +17,9 @@ struct RuntimeError : public std::runtime_error
 
   RuntimeError(Token::Value value, const std::string &msg, unsigned int line);
 
+  // Reports an error without a line. Only use this if better information is not available
+  RuntimeError(const std::string &msg);
+
   const Token token;
 };
 

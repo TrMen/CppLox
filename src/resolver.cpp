@@ -127,8 +127,8 @@ void Resolver::visit(FunctionStmt &node)
 
 void Resolver::resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body, FunctionType type)
 {
-    auto enclosing_function = current_function;
-    current_function = type;
+    auto enclosing_function = function_type;
+    function_type = type;
 
     scopes.emplace_back();
 
@@ -149,7 +149,7 @@ void Resolver::resolve_function(const std::vector<Token> &params, const std::vec
     scopes.pop_back();
     scopes.pop_back();
 
-    current_function = enclosing_function;
+    function_type = enclosing_function;
 }
 
 void Resolver::visit(Lambda &node)
@@ -159,7 +159,7 @@ void Resolver::visit(Lambda &node)
 
 void Resolver::visit(ReturnStmt &node)
 {
-    if (current_function == FunctionType::NONE)
+    if (function_type == FunctionType::NONE)
     {
         throw CompiletimeError(node.child<0>(), "Can't return from top-level code");
     }
@@ -168,13 +168,34 @@ void Resolver::visit(ReturnStmt &node)
 
 void Resolver::visit(ClassStmt &node)
 {
+    auto previous_type = class_type;
+    class_type = ClassType::CLASS;
+
     declare(node.child<0>());
     define(node.child<0>());
+
+    scopes.push_back({}); // 'this' variable needs a scope to live in
+    // 'this' always resolved to a "local" variable that lives just
+    // outside the block defined by a class's method
+    scopes.back().emplace("this", true);
 
     for (const auto &method : node.child<1>())
     {
         resolve_function(method->child<1>(), method->child<2>(), FunctionType::METHOD);
     }
+
+    scopes.pop_back();
+    class_type = previous_type;
+}
+
+void Resolver::visit(This &node)
+{
+    if (class_type == ClassType::NONE)
+    {
+        throw CompiletimeError(node.child<0>(), "Can't use 'this' outside of a class");
+    }
+    // 'this' introduces a local variable in scope. What this actually refers to is evaluated at runtime
+    resolve_local(node, node.child<0>());
 }
 
 // ----------------------Remaining visit impls that do nothing interesting---------------------------------

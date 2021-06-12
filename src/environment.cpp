@@ -17,6 +17,15 @@ void Environment::define(Token variable)
   variables.emplace(std::move(variable.lexeme), std::move(variable.value));
 }
 
+void Environment::define(std::string identifier, Token::Value value)
+{
+  if (variables.find(identifier) != variables.cend())
+  {
+    throw RuntimeError(value, "Identifier '" + identifier + "' is already defined in this scope.", 0);
+  }
+  variables.emplace(std::move(identifier), std::move(value));
+}
+
 Token::Value Environment::get(const Token &token) const
 {
   auto elem = variables.find(token.lexeme);

@@ -48,4 +48,6 @@ private:
   DECLARE_EXPR_VISIT_METHODS
 
   Token::Value get_evaluated(const expr &node);
+
+  Token::Value lookup_variable(const Token &name, const Expr &);
 };

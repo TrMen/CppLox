@@ -14,6 +14,8 @@ public:
   /// May throw RuntimeError if the name is already defined
   void define(Token variable);
 
+  void define(std::string identifier, Token::Value value);
+
   /// Get a variable value by the name of the supplied token.
   /// @throws RuntimeError on unknown variable access.
   Token::Value get(const Token &token) const;

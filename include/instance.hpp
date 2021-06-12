@@ -1,17 +1,18 @@
 #pragma once
 
 #include <unordered_map>
+#include <memory>
 
 #include "class.hpp"
 
-class Instance
+class Instance : public std::enable_shared_from_this<Instance>
 {
 public:
     Instance(std::shared_ptr<Class>);
 
     std::string to_string();
 
-    Token::Value get_field(const Token &name) const;
+    Token::Value get_field(const Token &name);
 
     void set_field(const Token &name, Token::Value);
 

@@ -27,6 +27,12 @@ private:
         METHOD
     };
 
+    enum class ClassType
+    {
+        NONE,
+        CLASS,
+    };
+
     void resolve_local(Expr &node, const Token &identifier);
     void resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body, FunctionType);
 
@@ -35,5 +41,6 @@ private:
     // The bool represents whether the variable is initialized
     std::vector<std::unordered_map<std::string, bool>> scopes;
 
-    FunctionType current_function = FunctionType::NONE;
+    FunctionType function_type = FunctionType::NONE;
+    ClassType class_type = ClassType::NONE;
 };

@@ -320,6 +320,11 @@ void Interpreter::visit(Set &node)
   last_value = std::move(value);
 }
 
+void Interpreter::visit(This &node)
+{
+  last_value = lookup_variable(node.child<0>(), node);
+}
+
 void Interpreter::visit(Assign &node)
 {
   Token::Value value = get_evaluated(node.child<1>());
@@ -357,16 +362,18 @@ void Interpreter::visit(Logical &node)
 
 void Interpreter::visit(Variable &node)
 {
-  const auto &identifier = node.child<0>();
+  last_value = lookup_variable(node.child<0>(), node);
+}
 
+Token::Value Interpreter::lookup_variable(const Token &name, const Expr &node)
+{
   if (node.depth.has_value())
   {
-    LOG_DEBUG("Node ", node.child<0>(), " has depth: ", *node.depth);
-    last_value = environment->get_at(*node.depth, identifier.lexeme);
+    return environment->get_at(*node.depth, name.lexeme);
   }
   else
   {
-    last_value = globals->get(identifier);
+    return globals->get(name);
   }
 }
 

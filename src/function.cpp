@@ -6,18 +6,6 @@
 using FuncPtr = const FunctionStmt *;
 using LambdaPtr = const Lambda *;
 
-Function::Function(FuncPtr _declaration, std::shared_ptr<Environment> closure)
-    : declaration(_declaration),
-      closure(std::move(closure))
-{
-}
-
-Function::Function(LambdaPtr _declaration, std::shared_ptr<Environment> closure)
-    : declaration(_declaration),
-      closure(std::move(closure))
-{
-}
-
 const std::vector<Token> &Function::parameters() const
 {
   if (std::holds_alternative<FuncPtr>(declaration))
@@ -79,3 +67,15 @@ std::string Function::to_string() const
   else
     return "<User lambda>";
 }
+
+std::shared_ptr<Function> Function::bind(std::shared_ptr<Instance> instance)
+{
+  auto env = std::make_shared<Environment>(closure);
+  env->define("this", instance);
+  Function{declaration, env};
+  return std::make_shared<Function>(declaration, env);
+}
+
+Function::Function(const std::variant<const FunctionStmt *, const Lambda *> &declaration, std::shared_ptr<Environment> closure)
+    : declaration(declaration),
+      closure(std::move(closure)) {}

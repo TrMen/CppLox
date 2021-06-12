@@ -506,8 +506,15 @@ expr Parser::primary()
 
   if (match({Type::NUMBER, Type::STRING}))
   {
-    Token::Value previous_val = previous().value;
+    auto previous_val = previous().value;
     return new_expr<Literal>(std::move(previous_val));
+  }
+
+  if (match(Type::THIS))
+  {
+    // Copy required because ExprProduction takes rvalue refs in constructor.
+    auto this_token = previous();
+    return new_expr<This>(std::move(this_token));
   }
 
   if (match(Type::IDENTIFIER))

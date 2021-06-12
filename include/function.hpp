@@ -8,11 +8,7 @@
 class Function : public Callable
 {
 public:
-  // closure is deliberately taken by value because it should not be affected by
-  // modifications after the function declaration
-  Function(const FunctionStmt *_declaration, std::shared_ptr<Environment> closure);
-
-  Function(const Lambda *_declaration, std::shared_ptr<Environment> closure);
+  Function(const std::variant<const FunctionStmt *, const Lambda *> &declaration, std::shared_ptr<Environment> closure);
 
   Token::Value call(Interpreter &interpreter, const std::vector<Token::Value> &arguments) override;
 
@@ -21,6 +17,15 @@ public:
 
   const std::vector<Token> &parameters() const;
   const std::vector<stmt> &body() const;
+
+  /* Create a bound method fron this function. A bound method is a method that is identical in AST
+  * but has an implicit 'this' variable that is always accessible.
+  * 'this' will be bound to the given instance
+  * 
+  * Note that the Instance will be kept alive due to shared_ptr usage, so returning a bound method
+  * from a scope is fine, even though the object goes out of scope. It's value will be kept.
+  */
+  std::shared_ptr<Function> bind(std::shared_ptr<Instance>);
 
 private:
   const std::variant<const FunctionStmt *, const Lambda *> declaration;

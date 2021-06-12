@@ -11,7 +11,7 @@ std::string Instance::to_string()
     return klass->name + " instance";
 }
 
-Token::Value Instance::get_field(const Token &name) const
+Token::Value Instance::get_field(const Token &name)
 {
     if (fields.contains(name.lexeme))
     {
@@ -27,7 +27,11 @@ Token::Value Instance::get_field(const Token &name) const
     auto method = klass->get_method(name.lexeme);
     if (method != nullptr)
     {
-        return method;
+        // Create new env
+        // Bind assign to the name of the variable the method was called on
+        // Create a copy of the method surrounded by that environment (called bound method)
+        // Call that copy
+        return method->bind(shared_from_this());
     }
 
     throw RuntimeError(name, "Property " + name.lexeme + " is not defined");

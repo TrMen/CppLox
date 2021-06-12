@@ -4,22 +4,26 @@
 Exit::Exit(const std::string &msg) : std::runtime_error(msg) {}
 
 RuntimeError::RuntimeError(Token _token, const std::string &msg)
-    : std::runtime_error("Runtime error at: '" + _token.lexeme + "' in line " +
+    : std::runtime_error("Runtime error at '" + _token.lexeme + "' in line " +
                          std::to_string(_token.line) + ": " + msg),
       token(std::move(_token)) {}
 
 RuntimeError::RuntimeError(Token::Value value, const std::string &msg, unsigned int line)
-    : std::runtime_error("Runtime error at: '" + stringify(value) + "' in line " +
+    : std::runtime_error("Runtime error at '" + stringify(value) + "' in line " +
                          std::to_string(line) + ": " + msg),
       token(Token{Token::TokenType::NIL, "RUNTIME_ERROR", value, line}) {}
 
+RuntimeError::RuntimeError(const std::string &msg)
+    : std::runtime_error("Runtime error: " + msg),
+      token(Token{Token::TokenType::NIL, "RUNTIME_ERROR", NullType{}, 0}) {}
+
 CompiletimeError::CompiletimeError(Token _token, const std::string &msg)
-    : std::runtime_error("Compile-time error at: '" + _token.lexeme + "' in line " +
+    : std::runtime_error("Compile-time error at '" + _token.lexeme + "' in line " +
                          std::to_string(_token.line) + ": " + msg),
       token(std::move(_token)) {}
 
 CompiletimeError::CompiletimeError(Token::Value value, const std::string &msg, unsigned int line)
-    : std::runtime_error("Compile-time error at: '" + stringify(value) + "' in line " +
+    : std::runtime_error("Compile-time error at '" + stringify(value) + "' in line " +
                          std::to_string(line) + ": " + msg),
       token(Token{Token::TokenType::NIL, "COMPILETIME_ERROR", value, line}) {}
 
@@ -41,11 +45,11 @@ void ErrorHandler::error(const Token &token, std::string_view message)
 {
   if (token.type == Token::TokenType::_EOF)
   {
-    report(token.line, " at end", message, true);
+    report(token.line, "", message, true);
   }
   else
   {
-    report(token.line, " at '" + token.lexeme + "'", message, true);
+    report(token.line, "", message, true);
   }
   had_error = true;
 }
@@ -54,11 +58,11 @@ void ErrorHandler::warn(const Token &token, std::string_view message)
 {
   if (token.type == Token::TokenType::_EOF)
   {
-    report(token.line, " at end", message, false);
+    report(token.line, "", message, false);
   }
   else
   {
-    report(token.line, " at '" + token.lexeme + "'", message, false);
+    report(token.line, "" + token.lexeme + "'", message, false);
   }
 }
 
