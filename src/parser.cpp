@@ -336,6 +336,24 @@ expr Parser::expression()
 
 expr Parser::comma_expression() { return assignment(); }
 
+namespace
+{
+  // dynamic_ptr_cast for unique_ptr. Transfers ownership of param to the reuturned ptr if it can be converted.
+  // Otherwise, does not transfer ownership and returns nullptr
+  template <typename To>
+  std::unique_ptr<To> owned_as(expr &expression)
+  {
+    // Needs to be done in two stages. Otherwise, memory leaks if the conversion of a unique_ptr fails
+    if (auto cast = dynamic_cast<To *>(expression.get()))
+    {
+      std::unique_ptr<To> result(cast); // Dangerous, takes ownership of an already-owned ptr
+      expression.release();             // This makes it ok
+      return result;
+    }
+    return nullptr;
+  }
+}
+
 expr Parser::assignment()
 {
   expr x_value = ternary_conditional();
@@ -345,12 +363,13 @@ expr Parser::assignment()
     const auto &equal = previous();
     expr value = assignment();
 
-    // This checks whether we can assign to the x_value.
-    auto *l_value = dynamic_cast<Variable *>(x_value.get());
-    if (l_value != nullptr)
+    if (auto variable = owned_as<Variable>(x_value))
     {
-      Token name = l_value->child<0>();
-      return new_expr<Assign>(std::move(name), std::move(value));
+      return new_expr<Assign>(std::move(variable->child<0>()), std::move(value));
+    }
+    else if (auto get = owned_as<Get>(x_value))
+    {
+      return new_expr<Set>(std::move(get->child<0>()), std::move(get->child<1>()), std::move(value));
     }
 
     error(equal, "Invalid assignment operator"); // Report but don't throw
@@ -439,6 +458,11 @@ expr Parser::call()
     if (match(Type::LEFT_PAREN))
     {
       result = finish_call(std::move(result));
+    }
+    else if (match(Type::DOT))
+    {
+      auto name = consume(Type::IDENTIFIER, "Expect property name after '.'");
+      result = new_expr<Get>(std::move(result), std::move(name));
     }
     else
     {

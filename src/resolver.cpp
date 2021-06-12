@@ -122,13 +122,13 @@ void Resolver::visit(FunctionStmt &node)
     declare(node.child<0>());
     define(node.child<0>());
 
-    resolve_function(node.child<1>(), node.child<2>());
+    resolve_function(node.child<1>(), node.child<2>(), FunctionType::FUNCTION);
 }
 
-void Resolver::resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body)
+void Resolver::resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body, FunctionType type)
 {
     auto enclosing_function = current_function;
-    current_function = FunctionType::FUNCTION;
+    current_function = type;
 
     scopes.emplace_back();
 
@@ -154,7 +154,7 @@ void Resolver::resolve_function(const std::vector<Token> &params, const std::vec
 
 void Resolver::visit(Lambda &node)
 {
-    resolve_function(node.child<0>(), node.child<1>());
+    resolve_function(node.child<0>(), node.child<1>(), FunctionType::FUNCTION);
 }
 
 void Resolver::visit(ReturnStmt &node)
@@ -170,6 +170,11 @@ void Resolver::visit(ClassStmt &node)
 {
     declare(node.child<0>());
     define(node.child<0>());
+
+    for (const auto &method : node.child<1>())
+    {
+        resolve_function(method->child<1>(), method->child<2>(), FunctionType::METHOD);
+    }
 }
 
 // ----------------------Remaining visit impls that do nothing interesting---------------------------------
@@ -256,4 +261,18 @@ void Resolver::visit(MalformedStmt &)
 
 void Resolver::visit(EmptyStmt &)
 {
+}
+
+void Resolver::visit(Get &node)
+{
+    resolve(node.child<0>());
+}
+
+void Resolver::visit(Set &node)
+{
+    resolve(node.child<0>());
+
+    // Note, the property is dynamically-evaluated, so no variable is introduced for name here
+
+    resolve(node.child<2>());
 }

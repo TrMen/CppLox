@@ -15,6 +15,7 @@ bool operator!=([[maybe_unused]] const NullType &lhs,
 
 struct Callable;
 struct Instance;
+struct Function;
 
 std::ostream &operator<<(std::ostream &os, const NullType &rhs);
 
@@ -76,7 +77,7 @@ struct Token
 
   using Value =
       std::variant<double, std::string, NullType, bool,
-                   std::shared_ptr<Callable>, std::shared_ptr<Instance>>;
+                   std::shared_ptr<Callable>, std::shared_ptr<Instance>, std::shared_ptr<Function>>;
 
   Token(TokenType _type, std::string _lexeme, Value _value,
         unsigned int _line);

@@ -39,10 +39,12 @@ using Assign = ExprProduction<8, Token, expr>;                             // na
 using Logical = ExprProduction<9, expr, Token, expr>;                      // left op right	(where op is "and" or "or")
 using Call = ExprProduction<10, expr, Token, std::vector<expr>>;           // callee paren arguments
 using Lambda = ExprProduction<11, std::vector<Token>, std::vector<stmt>>;  // params body
+using Get = ExprProduction<12, expr, Token>;                               // object name
+using Set = ExprProduction<13, expr, Token, expr>;                         // object name value
 // clang-format on
 
 #define EXPR_TYPES Literal, Grouping, Unary, Binary, Ternary, Malformed, Variable, \
-                   Empty, Assign, Logical, Call, Lambda
+                   Empty, Assign, Logical, Call, Lambda, Get, Set
 
 using ExprVisitableBase = Visitable<EXPR_TYPES>;
 template <int id, typename... Types>
@@ -101,7 +103,9 @@ std::ostream &operator<<(std::ostream &os, const expr &rhs);
   void visit(Malformed &) override; \
   void visit(Call &) override;      \
   void visit(Grouping &) override;  \
-  void visit(Lambda &) override;
+  void visit(Lambda &) override;    \
+  void visit(Get &) override;       \
+  void visit(Set &) override;
 
 template <typename Type, typename... arg_types>
 expr new_expr(arg_types &&...args)

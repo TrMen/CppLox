@@ -7,6 +7,7 @@
 #include "buildin.hpp"
 #include "logging.hpp"
 #include "class.hpp"
+#include "instance.hpp"
 
 using Type = Token::TokenType;
 
@@ -163,11 +164,19 @@ void Interpreter::visit(FunctionStmt &node)
 
 void Interpreter::visit(ClassStmt &node)
 {
-  auto class_token = node.child<0>();
+  auto klass = node.child<0>();
 
-  class_token.value = std::make_shared<Class>(node.child<0>().lexeme);
+  std::unordered_map<std::string, std::shared_ptr<Function>> methods;
+  for (const auto &method : node.child<1>())
+  {
+    // Every AST node method becomes a runtime function that captures the envrionment
+    // This allows methods to keep being associated with their original objects
+    methods.emplace(method->child<0>().lexeme, std::make_shared<Function>(method.get(), environment));
+  }
 
-  environment->define(std::move(class_token));
+  klass.value = std::make_shared<Class>(node.child<0>().lexeme, std::move(methods));
+
+  environment->define(std::move(klass));
 }
 
 void Interpreter::visit(IfStmt &node)
@@ -255,6 +264,10 @@ void Interpreter::visit(Call &node)
     {
       return dynamic_cast<Callable *>(std::get<std::shared_ptr<Callable>>(callee).get());
     }
+    else if (std::holds_alternative<std::shared_ptr<Function>>(callee))
+    {
+      return dynamic_cast<Callable *>(std::get<std::shared_ptr<Function>>(callee).get());
+    }
     throw RuntimeError(node.child<1>(),
                        "Can only call functions and classes.");
   }();
@@ -276,6 +289,35 @@ void Interpreter::visit(Call &node)
   }
 
   last_value = callable->call(*this, arguments);
+}
+
+void Interpreter::visit(Get &node)
+{
+  auto object = get_evaluated(node.child<0>());
+
+  if (std::holds_alternative<std::shared_ptr<Instance>>(object))
+  {
+    last_value = std::get<std::shared_ptr<Instance>>(object)->get_field(node.child<1>());
+    return;
+  }
+
+  throw RuntimeError(node.child<1>(), "Expression before '.' must evaluate to an object");
+}
+
+void Interpreter::visit(Set &node)
+{
+  auto object = get_evaluated(node.child<0>());
+
+  if (!std::holds_alternative<std::shared_ptr<Instance>>(object))
+  {
+    throw RuntimeError(node.child<1>(), "Expression before '.' must evaluate to an object");
+  }
+
+  auto value = get_evaluated(node.child<2>());
+
+  std::get<std::shared_ptr<Instance>>(object)->set_field(node.child<1>(), value);
+
+  last_value = std::move(value);
 }
 
 void Interpreter::visit(Assign &node)

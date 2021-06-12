@@ -23,11 +23,12 @@ private:
     enum class FunctionType
     {
         NONE,
-        FUNCTION
+        FUNCTION,
+        METHOD
     };
 
     void resolve_local(Expr &node, const Token &identifier);
-    void resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body);
+    void resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body, FunctionType);
 
     Interpreter &interpreter;
 
