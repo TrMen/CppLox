@@ -8,18 +8,6 @@
 
 using Type = Token::TokenType;
 
-std::string Parser::str(FunctionKind kind)
-{
-  switch (kind)
-  {
-  case Parser::FunctionKind::FUNCTION:
-    return "function";
-  case Parser::FunctionKind::METHOD:
-    return "method";
-  }
-  assert(false);
-}
-
 Parser::Parser(std::vector<Token> _tokens,
                std::shared_ptr<ErrorHandler> _err_handler)
     : err_handler(std::move(_err_handler)), tokens(std::move(_tokens)) {}
@@ -131,7 +119,7 @@ FunctionStmtPtr Parser::function_declaration(FunctionKind kind)
   consume(Type::RIGHT_PAREN, "Expect ')' after parameter list.");
   consume(Type::LEFT_BRACE, "Expect '{' before " + str(kind) + " body.");
 
-  return std::make_unique<FunctionStmt>(std::move(name), std::move(params), block());
+  return std::make_unique<FunctionStmt>(std::move(name), std::move(params), block(), std::move(kind));
 }
 
 stmt Parser::class_declaration()
@@ -143,7 +131,8 @@ stmt Parser::class_declaration()
   std::vector<FunctionStmtPtr> methods;
   while (!check(Type::RIGHT_BRACE) && !is_at_end())
   {
-    methods.push_back(function_declaration(FunctionKind::METHOD));
+    auto function_kind = match(Type::UNBOUND) ? FunctionKind::UNBOUND : FunctionKind::METHOD;
+    methods.push_back(function_declaration(function_kind));
   }
 
   consume(Type::RIGHT_BRACE, "Expect '}' after class body");

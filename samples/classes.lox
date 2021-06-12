@@ -24,9 +24,19 @@ cake.taste(); // Prints "The German chocolate cake is delicious!".
 
 class Foo {
   init() {
-    print this;
+    this.x = 1;
+    return; // Empty returns in constructors are allowed for control flow, but not needed
+    // return 2; // Non-empty returns are not
+  }
+
+  printX()
+  {
+    print this.x;
   }
 }
 
 var foo = Foo();
-print foo.init();
+foo.x = 5;
+foo.printX(); // "5"
+foo.init(); // Can re-initialize object by explicitly calling init()
+foo.printX(); // "1"

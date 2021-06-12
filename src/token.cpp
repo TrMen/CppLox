@@ -4,7 +4,6 @@
 #include <cassert>
 
 #include "callable.hpp"
-#include "function.hpp"
 #include "error.hpp"
 #include "instance.hpp"
 
@@ -77,10 +76,6 @@ std::string stringify(const Token::Value &arg)
   if (std::holds_alternative<std::shared_ptr<Callable>>(arg))
   {
     return std::get<std::shared_ptr<Callable>>(arg)->to_string();
-  }
-  if (std::holds_alternative<std::shared_ptr<Function>>(arg))
-  {
-    return std::get<std::shared_ptr<Function>>(arg)->to_string();
   }
   if (std::holds_alternative<std::shared_ptr<Instance>>(arg))
   {

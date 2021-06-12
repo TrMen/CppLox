@@ -24,13 +24,6 @@ public:
   std::shared_ptr<ErrorHandler> err_handler;
 
 private:
-  enum class FunctionKind
-  {
-    FUNCTION,
-    METHOD
-  };
-  static std::string str(FunctionKind);
-
   // Statements
   stmt declaration();
   stmt var_declaration();

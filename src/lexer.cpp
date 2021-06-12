@@ -8,7 +8,7 @@ const std::unordered_map<std::string, Lexer::Type> Lexer::keywords{
     {"or", Type::OR}, {"print", Type::PRINT}, {"return", Type::RETURN}, 
     {"super", Type::SUPER}, {"this", Type::THIS}, {"true", Type::TRUE}, 
     {"var", Type::VAR}, {"while", Type::WHILE}, {"let", Type::VAR},
-    {"return", Type::RETURN}};
+    {"return", Type::RETURN}, {"unbound", Type::UNBOUND}};
 // clang-format on
 
 Lexer::Lexer(std::string _source, std::shared_ptr<ErrorHandler> _err_handler)

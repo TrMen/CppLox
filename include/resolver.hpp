@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include "interpreter.hpp"
 
 class Resolver : public ExprVisitor, public StmtVisitor
@@ -20,28 +22,20 @@ private:
     void declare(const Token &identifier);
     void define(const Token &identifier);
 
-    enum class FunctionType
-    {
-        NONE,
-        FUNCTION,
-        METHOD,
-        CONSTRUCTOR
-    };
-
-    enum class ClassType
+    enum class ClassKind
     {
         NONE,
         CLASS,
     };
 
     void resolve_local(Expr &node, const Token &identifier);
-    void resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body, FunctionType);
+    void resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body, FunctionKind);
 
     Interpreter &interpreter;
 
     // The bool represents whether the variable is initialized
     std::vector<std::unordered_map<std::string, bool>> scopes;
 
-    FunctionType function_type = FunctionType::NONE;
-    ClassType class_type = ClassType::NONE;
+    std::optional<FunctionKind> function_kind = std::nullopt;
+    ClassKind class_kind = ClassKind::NONE;
 };

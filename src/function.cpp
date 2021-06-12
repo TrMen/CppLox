@@ -7,9 +7,9 @@ using FuncPtr = const FunctionStmt *;
 using LambdaPtr = const Lambda *;
 
 Function::Function(const std::variant<const FunctionStmt *, const Lambda *> &_declaration,
-                   std::shared_ptr<Environment> _closure, bool _is_constructor)
+                   std::shared_ptr<Environment> _closure, FunctionKind _kind)
     : declaration(_declaration),
-      closure(std::move(_closure)), is_constructor(_is_constructor)
+      closure(std::move(_closure)), kind(_kind)
 {
 }
 
@@ -54,12 +54,12 @@ Token::Value Function::call(Interpreter &interpreter, const std::vector<Token::V
   }
   catch (const Interpreter::Return &returned) // Early return
   {
-    if (is_constructor)                  // Allow empty returns in constructors that implicitly return 'this'
-      return closure->get_at(0, "this"); // Non-empty returns in constructors are caught by resolver
+    if (kind == FunctionKind::CONSTRUCTOR) // Allow empty returns in constructors that implicitly return 'this'
+      return closure->get_at(0, "this");   // Non-empty returns in constructors are caught by resolver
     return returned.val;
   }
 
-  if (is_constructor)
+  if (kind == FunctionKind::CONSTRUCTOR)
     return closure->get_at(0, "this");
 
   return NullType{};
@@ -69,18 +69,26 @@ size_t Function::arity() const { return parameters().size(); }
 
 std::string Function::to_string() const
 {
-  if (std::holds_alternative<FuncPtr>(declaration))
+  switch (kind)
   {
-    const auto &function_name = std::get<FuncPtr>(declaration)->child<0>().lexeme;
-    return "<User fn " + function_name + ">";
-  }
-  else
+  case FunctionKind::FUNCTION:
+    return "<User fn " + std::get<FuncPtr>(declaration)->child<0>().lexeme + ">";
+  case FunctionKind::LAMDBDA:
     return "<User lambda>";
+  case FunctionKind::CONSTRUCTOR:
+    return "<User constructor>";
+  case FunctionKind::METHOD:
+    return "<User method>";
+  case FunctionKind::UNBOUND:
+    return "<User unbound fn>";
+  }
+
+  return "";
 }
 
 std::shared_ptr<Function> Function::bind(std::shared_ptr<Instance> instance)
 {
   auto env = std::make_shared<Environment>(closure);
   env->define("this", instance);
-  return std::make_shared<Function>(declaration, env, is_constructor);
+  return std::make_shared<Function>(declaration, env, kind);
 }

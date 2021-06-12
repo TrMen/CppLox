@@ -9,4 +9,4 @@ eval("print(x);"); // Eval uses the same state as the host program and has acces
 exit(); // Terminates the program
 print(clock()); // Gives you a timestamp
 printEnv(); // Prints all defined global and local variables
-setLogLevel("debug"); Gives some debug output about the state of the interpreter during execution
+setLogLevel("debug"); // Gives some debug output about the state of the interpreter during execution

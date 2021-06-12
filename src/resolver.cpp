@@ -124,13 +124,13 @@ void Resolver::visit(FunctionStmt &node)
     declare(name);
     define(name);
 
-    resolve_function(node.child<1>(), node.child<2>(), FunctionType::FUNCTION);
+    resolve_function(node.child<1>(), node.child<2>(), node.child<3>());
 }
 
-void Resolver::resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body, FunctionType type)
+void Resolver::resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body, FunctionKind type)
 {
-    auto enclosing_function = function_type;
-    function_type = type;
+    auto enclosing_function = function_kind;
+    function_kind = type;
 
     scopes.emplace_back();
 
@@ -151,32 +151,33 @@ void Resolver::resolve_function(const std::vector<Token> &params, const std::vec
     scopes.pop_back();
     scopes.pop_back();
 
-    function_type = enclosing_function;
+    function_kind = enclosing_function;
 }
 
 void Resolver::visit(Lambda &node)
 {
-    resolve_function(node.child<0>(), node.child<1>(), FunctionType::FUNCTION);
+    resolve_function(node.child<0>(), node.child<1>(), FunctionKind::LAMDBDA);
 }
 
 void Resolver::visit(ReturnStmt &node)
 {
-    if (function_type == FunctionType::NONE)
+    if (not function_kind.has_value())
     {
         throw CompiletimeError(node.child<0>(), "Can't return from top-level code");
     }
-    else if (function_type == FunctionType::CONSTRUCTOR)
+    if (*function_kind == FunctionKind::CONSTRUCTOR && not dynamic_cast<Empty *>(node.child<1>().get()))
     {
         throw CompiletimeError(node.child<0>(),
-                               "Can't return from 'init' methods. Implicitly returns a new instance of the class");
+                               "Can't return values from 'init' methods. Implicitly returns a new instance of the class");
     }
+
     resolve(node.child<1>());
 }
 
 void Resolver::visit(ClassStmt &node)
 {
-    auto previous_type = class_type;
-    class_type = ClassType::CLASS;
+    auto previous_type = class_kind;
+    class_kind = ClassKind::CLASS;
 
     declare(node.child<0>());
     define(node.child<0>());
@@ -188,20 +189,26 @@ void Resolver::visit(ClassStmt &node)
 
     for (const auto &method : node.child<1>())
     {
-        const auto method_type =
-            method->child<0>().lexeme == "init" ? FunctionType::CONSTRUCTOR : FunctionType::METHOD;
-        resolve_function(method->child<1>(), method->child<2>(), method_type);
+        if (method->child<0>().lexeme == "init")
+        {
+            method->child<3>() = FunctionKind::CONSTRUCTOR;
+        }
+        resolve_function(method->child<1>(), method->child<2>(), method->child<3>());
     }
 
     scopes.pop_back();
-    class_type = previous_type;
+    class_kind = previous_type;
 }
 
 void Resolver::visit(This &node)
 {
-    if (class_type == ClassType::NONE)
+    if (class_kind == ClassKind::NONE)
     {
         throw CompiletimeError(node.child<0>(), "Can't use 'this' outside of a class");
+    }
+    if (function_kind.has_value() && *function_kind == FunctionKind::UNBOUND)
+    {
+        throw CompiletimeError(node.child<0>(), "Can't use 'this' in unbound methods");
     }
     // 'this' introduces a local variable in scope. What this actually refers to is evaluated at runtime
     resolve_local(node, node.child<0>());

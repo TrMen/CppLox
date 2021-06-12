@@ -14,8 +14,9 @@ bool operator!=([[maybe_unused]] const NullType &lhs,
                 [[maybe_unused]] const NullType &rhs);
 
 struct Callable;
-struct Instance;
+struct Class;
 struct Function;
+struct Instance;
 
 std::ostream &operator<<(std::ostream &os, const NullType &rhs);
 
@@ -71,13 +72,14 @@ struct Token
     TRUE,
     VAR,
     WHILE,
+    UNBOUND, // For methods that aren't bound (static methods)
 
     _EOF
   };
 
   using Value =
       std::variant<double, std::string, NullType, bool,
-                   std::shared_ptr<Callable>, std::shared_ptr<Instance>, std::shared_ptr<Function>>;
+                   std::shared_ptr<Callable>, std::shared_ptr<Instance>>;
 
   Token(TokenType _type, std::string _lexeme, Value _value,
         unsigned int _line);
@@ -95,3 +97,18 @@ std::ostream &operator<<(std::ostream &os, const Token::Value &value);
 std::ostream &operator<<(std::ostream &os, const std::vector<Token> &value);
 
 std::string stringify(const Token::Value &value);
+
+template <typename T>
+std::shared_ptr<T> get_callable_as(const Token::Value &value)
+{
+  static_assert(std::is_same_v<T, Class> || std::is_same_v<T, Function>, "Callable must be a class or function");
+
+  if (std::holds_alternative<std::shared_ptr<Callable>>(value))
+  {
+    if (auto casted = std::dynamic_pointer_cast<T>(std::get<std::shared_ptr<Callable>>(value)))
+    {
+      return casted;
+    }
+  }
+  return nullptr;
+}

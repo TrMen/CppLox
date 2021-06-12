@@ -5,7 +5,9 @@
 class Class : public Callable, public std::enable_shared_from_this<Class>
 {
 public:
-    Class(std::string _name, std::unordered_map<std::string, std::shared_ptr<Function>> _methods);
+    using FunctionMap = std::unordered_map<std::string, std::shared_ptr<Function>>;
+
+    Class(std::string _name, FunctionMap _methods, FunctionMap unbounds);
 
     Token::Value call(Interpreter &, const std::vector<Token::Value> &arguments) override;
 
@@ -15,8 +17,11 @@ public:
 
     std::shared_ptr<Function> get_method(const std::string &name) const;
 
+    std::shared_ptr<Function> get_unbound(const Token &name) const;
+
     const std::string name;
 
 private:
-    std::unordered_map<std::string, std::shared_ptr<Function>> methods;
+    FunctionMap methods;
+    FunctionMap unbounds;
 };

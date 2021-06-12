@@ -1,6 +1,31 @@
 #include "stmt.hpp"
 
+#include <cassert>
+
 Statement::~Statement() = default;
+
+std::string str(FunctionKind kind)
+{
+    switch (kind)
+    {
+    case FunctionKind::FUNCTION:
+        return "function";
+    case FunctionKind::METHOD:
+        return "method";
+    case FunctionKind::UNBOUND:
+        return "unbound class function";
+    case FunctionKind::CONSTRUCTOR:
+        return "constructor";
+    case FunctionKind::LAMDBDA:
+        return "lambda";
+    }
+    return "";
+}
+
+std::ostream &operator<<(std::ostream &os, FunctionKind kind)
+{
+    return os << str(kind);
+}
 
 std::ostream &operator<<(std::ostream &os, const Statement &rhs)
 {

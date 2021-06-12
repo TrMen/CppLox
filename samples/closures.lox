@@ -6,5 +6,5 @@ var a = "global";
 
   showA(); // "global"
   var a = "block";
-  showA(); // "block"
+  showA(); // "global" -> functions capture their original environment
 }

@@ -1,6 +1,7 @@
 #include "interpreter.hpp"
 
 #include <filesystem>
+#include <cassert>
 
 #include "callable.hpp"
 #include "function.hpp"
@@ -158,24 +159,35 @@ void Interpreter::visit(FunctionStmt &node)
 {
   auto function = node.child<0>();
   LOG_DEBUG("Declaring func ", function.lexeme, " with env: ", *environment);
-  function.value = std::make_shared<Function>(&node, environment, false);
-  environment->define(std ::move(function));
+  function.value = std::make_shared<Function>(&node, environment, node.child<3>());
+  environment->define(std::move(function));
 }
 
 void Interpreter::visit(ClassStmt &node)
 {
   auto klass = node.child<0>();
 
-  std::unordered_map<std::string, std::shared_ptr<Function>> methods;
-  for (const auto &method : node.child<1>())
+  Class::FunctionMap methods;
+  Class::FunctionMap unbounds;
+  for (const auto &function : node.child<1>())
   {
-    const auto &name = method->child<0>().lexeme;
-    // Every AST node method becomes a runtime function that captures the envrionment
-    // This allows methods to keep being associated with their original objects
-    methods.emplace(name, std::make_shared<Function>(method.get(), environment, name == "init"));
+    const auto &kind = function->child<3>();
+    if (kind == FunctionKind::METHOD || kind == FunctionKind::CONSTRUCTOR)
+      // Every AST node method becomes a runtime function that captures the envrionment
+      // This allows methods to keep being associated with their original objects
+      methods.emplace(function->child<0>().lexeme,
+                      std::make_shared<Function>(function.get(), environment, kind));
+    else if (kind == FunctionKind::UNBOUND)
+      unbounds.emplace(function->child<0>().lexeme,
+                       std::make_shared<Function>(function.get(), environment, kind));
+    else
+    {
+      LOG_ERROR("Invalid kind: ", kind);
+      assert(false);
+    }
   }
 
-  klass.value = std::make_shared<Class>(node.child<0>().lexeme, std::move(methods));
+  klass.value = std::make_shared<Class>(node.child<0>().lexeme, std::move(methods), std::move(unbounds));
 
   environment->define(std::move(klass));
 }
@@ -252,26 +264,16 @@ void Interpreter::visit(Lambda &node)
 {
   LOG_DEBUG("Declaring lambda");
 
-  last_value = std::make_shared<Function>(&node, environment, false);
+  last_value = std::make_shared<Function>(&node, environment, FunctionKind::LAMDBDA);
 }
 
 void Interpreter::visit(Call &node)
 {
   auto callee = get_evaluated(node.child<0>());
 
-  const auto callable = [&node, &callee]()
-  {
-    if (std::holds_alternative<std::shared_ptr<Callable>>(callee))
-    {
-      return dynamic_cast<Callable *>(std::get<std::shared_ptr<Callable>>(callee).get());
-    }
-    else if (std::holds_alternative<std::shared_ptr<Function>>(callee))
-    {
-      return dynamic_cast<Callable *>(std::get<std::shared_ptr<Function>>(callee).get());
-    }
-    throw RuntimeError(node.child<1>(),
-                       "Can only call functions and classes.");
-  }();
+  if (!std::holds_alternative<std::shared_ptr<Callable>>(callee))
+    throw RuntimeError(node.child<1>(), "Can only call functions and classes.");
+  const auto callable = std::get<std::shared_ptr<Callable>>(callee);
 
   // Check arity (number of arguments)
   if (node.child<2>().size() != callable->arity())
@@ -289,6 +291,7 @@ void Interpreter::visit(Call &node)
     arguments.push_back(get_evaluated(argument));
   }
 
+  LOG_DEBUG("Calling callable in visit(Call): ", callable->to_string());
   last_value = callable->call(*this, arguments);
 }
 
@@ -299,10 +302,16 @@ void Interpreter::visit(Get &node)
   if (std::holds_alternative<std::shared_ptr<Instance>>(object))
   {
     last_value = std::get<std::shared_ptr<Instance>>(object)->get_field(node.child<1>());
-    return;
   }
-
-  throw RuntimeError(node.child<1>(), "Expression before '.' must evaluate to an object");
+  else if (auto klass = get_callable_as<Class>(object))
+  {
+    LOG_DEBUG("Getting class: ", klass->to_string());
+    last_value = klass->get_unbound(node.child<1>());
+  }
+  else
+  {
+    throw RuntimeError(node.child<1>(), "Can only access fields of objects or classes. Called with: " + stringify(object));
+  }
 }
 
 void Interpreter::visit(Set &node)
@@ -311,7 +320,7 @@ void Interpreter::visit(Set &node)
 
   if (!std::holds_alternative<std::shared_ptr<Instance>>(object))
   {
-    throw RuntimeError(node.child<1>(), "Expression before '.' must evaluate to an object");
+    throw RuntimeError(node.child<1>(), "Can only set properties on objects");
   }
 
   auto value = get_evaluated(node.child<2>());

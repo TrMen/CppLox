@@ -1,0 +1,22 @@
+// In my implementation, class-associated functions are called 'unbound' functions.
+// These would be called static functions in most languages
+
+class Math {
+  unbound square(n) {
+    return n * n;
+  }
+
+  init(width) {
+      this.width = width;
+  }
+
+  square() {
+      return this.width * this.width;
+  }
+}
+
+print Math.square(3); // Prints "9".
+print Math(5).square(); // Prints "25"
+
+let x = Math.square;
+print x(5); // "25"
