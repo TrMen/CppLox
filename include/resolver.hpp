@@ -24,7 +24,8 @@ private:
     {
         NONE,
         FUNCTION,
-        METHOD
+        METHOD,
+        CONSTRUCTOR
     };
 
     enum class ClassType

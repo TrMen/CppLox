@@ -6,6 +6,13 @@
 using FuncPtr = const FunctionStmt *;
 using LambdaPtr = const Lambda *;
 
+Function::Function(const std::variant<const FunctionStmt *, const Lambda *> &_declaration,
+                   std::shared_ptr<Environment> _closure, bool _is_constructor)
+    : declaration(_declaration),
+      closure(std::move(_closure)), is_constructor(_is_constructor)
+{
+}
+
 const std::vector<Token> &Function::parameters() const
 {
   if (std::holds_alternative<FuncPtr>(declaration))
@@ -41,16 +48,19 @@ Token::Value Function::call(Interpreter &interpreter, const std::vector<Token::V
     environment->define(parameter);
   }
 
-  LOG_DEBUG("Fn env after defining params: ", *environment);
-
   try
   {
     interpreter.execute_block(body(), environment);
   }
   catch (const Interpreter::Return &returned) // Early return
   {
+    if (is_constructor)                  // Allow empty returns in constructors that implicitly return 'this'
+      return closure->get_at(0, "this"); // Non-empty returns in constructors are caught by resolver
     return returned.val;
   }
+
+  if (is_constructor)
+    return closure->get_at(0, "this");
 
   return NullType{};
 }
@@ -72,10 +82,5 @@ std::shared_ptr<Function> Function::bind(std::shared_ptr<Instance> instance)
 {
   auto env = std::make_shared<Environment>(closure);
   env->define("this", instance);
-  Function{declaration, env};
-  return std::make_shared<Function>(declaration, env);
+  return std::make_shared<Function>(declaration, env, is_constructor);
 }
-
-Function::Function(const std::variant<const FunctionStmt *, const Lambda *> &declaration, std::shared_ptr<Environment> closure)
-    : declaration(declaration),
-      closure(std::move(closure)) {}

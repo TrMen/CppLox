@@ -15,15 +15,27 @@ std::string Class::to_string() const
 
 size_t Class::arity() const
 {
+    if (auto constructor = get_method("init"))
+    {
+        return constructor->arity();
+    }
     return 0;
 }
 
-Token::Value Class::call(Interpreter &, const std::vector<Token::Value> &)
+Token::Value Class::call(Interpreter &interpreter, const std::vector<Token::Value> &arguments)
 {
-    return std::make_shared<Instance>(shared_from_this());
+    auto instance = std::make_shared<Instance>(shared_from_this());
+
+    // Run constructor method when class is called. Class-call args become constructor args
+    if (auto constructor = get_method("init"))
+    {
+        constructor->bind(instance)->call(interpreter, arguments);
+    }
+
+    return instance;
 }
 
-std::shared_ptr<Function> Class::get_method(const std::string &name)
+std::shared_ptr<Function> Class::get_method(const std::string &name) const
 {
     if (methods.contains(name))
     {
@@ -33,7 +45,7 @@ std::shared_ptr<Function> Class::get_method(const std::string &name)
     LOG_WARNING("Unknown method ", name, ". Existing methods: ");
     for (const auto &method : methods)
     {
-        LOG_WARNING(method.first, ": ", method.second);
+        LOG_WARNING(method.first, ": ", method.second->to_string());
     }
 
     return nullptr;

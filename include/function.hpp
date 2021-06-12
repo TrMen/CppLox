@@ -8,7 +8,8 @@
 class Function : public Callable
 {
 public:
-  Function(const std::variant<const FunctionStmt *, const Lambda *> &declaration, std::shared_ptr<Environment> closure);
+  Function(const std::variant<const FunctionStmt *, const Lambda *> &declaration,
+           std::shared_ptr<Environment> closure, bool is_constructor);
 
   Token::Value call(Interpreter &interpreter, const std::vector<Token::Value> &arguments) override;
 
@@ -30,4 +31,5 @@ public:
 private:
   const std::variant<const FunctionStmt *, const Lambda *> declaration;
   std::shared_ptr<Environment> closure;
+  const bool is_constructor;
 };

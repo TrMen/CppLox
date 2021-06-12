@@ -24,8 +24,7 @@ Token::Value Instance::get_field(const Token &name)
         LOG_WARNING(field.first, ": ", field.second);
     }
 
-    auto method = klass->get_method(name.lexeme);
-    if (method != nullptr)
+    if (auto method = klass->get_method(name.lexeme))
     {
         // Create new env
         // Bind assign to the name of the variable the method was called on

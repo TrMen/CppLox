@@ -117,10 +117,12 @@ void Resolver::visit(Assign &node)
 
 void Resolver::visit(FunctionStmt &node)
 {
+    const auto &name = node.child<0>();
+
     // Declare the name eagerly, to allow functions to recurisvely
     // refer to their names in their bodies
-    declare(node.child<0>());
-    define(node.child<0>());
+    declare(name);
+    define(name);
 
     resolve_function(node.child<1>(), node.child<2>(), FunctionType::FUNCTION);
 }
@@ -163,6 +165,11 @@ void Resolver::visit(ReturnStmt &node)
     {
         throw CompiletimeError(node.child<0>(), "Can't return from top-level code");
     }
+    else if (function_type == FunctionType::CONSTRUCTOR)
+    {
+        throw CompiletimeError(node.child<0>(),
+                               "Can't return from 'init' methods. Implicitly returns a new instance of the class");
+    }
     resolve(node.child<1>());
 }
 
@@ -181,7 +188,9 @@ void Resolver::visit(ClassStmt &node)
 
     for (const auto &method : node.child<1>())
     {
-        resolve_function(method->child<1>(), method->child<2>(), FunctionType::METHOD);
+        const auto method_type =
+            method->child<0>().lexeme == "init" ? FunctionType::CONSTRUCTOR : FunctionType::METHOD;
+        resolve_function(method->child<1>(), method->child<2>(), method_type);
     }
 
     scopes.pop_back();

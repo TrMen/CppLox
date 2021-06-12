@@ -13,7 +13,7 @@ public:
 
     size_t arity() const override;
 
-    std::shared_ptr<Function> get_method(const std::string &name);
+    std::shared_ptr<Function> get_method(const std::string &name) const;
 
     const std::string name;
 

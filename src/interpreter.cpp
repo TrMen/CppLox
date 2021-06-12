@@ -158,7 +158,7 @@ void Interpreter::visit(FunctionStmt &node)
 {
   auto function = node.child<0>();
   LOG_DEBUG("Declaring func ", function.lexeme, " with env: ", *environment);
-  function.value = std::make_shared<Function>(&node, environment);
+  function.value = std::make_shared<Function>(&node, environment, false);
   environment->define(std ::move(function));
 }
 
@@ -169,9 +169,10 @@ void Interpreter::visit(ClassStmt &node)
   std::unordered_map<std::string, std::shared_ptr<Function>> methods;
   for (const auto &method : node.child<1>())
   {
+    const auto &name = method->child<0>().lexeme;
     // Every AST node method becomes a runtime function that captures the envrionment
     // This allows methods to keep being associated with their original objects
-    methods.emplace(method->child<0>().lexeme, std::make_shared<Function>(method.get(), environment));
+    methods.emplace(name, std::make_shared<Function>(method.get(), environment, name == "init"));
   }
 
   klass.value = std::make_shared<Class>(node.child<0>().lexeme, std::move(methods));
@@ -251,7 +252,7 @@ void Interpreter::visit(Lambda &node)
 {
   LOG_DEBUG("Declaring lambda");
 
-  last_value = std::make_shared<Function>(&node, environment);
+  last_value = std::make_shared<Function>(&node, environment, false);
 }
 
 void Interpreter::visit(Call &node)

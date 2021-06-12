@@ -133,7 +133,7 @@ static int run_file(const char *filename)
 int main(int argc, char *argv[])
 {
   std::setprecision(3);
-  Logging::set_log_level(Logging::LogLevel::warning);
+  Logging::set_log_level(Logging::LogLevel::error);
   if (argc > 2)
   {
     std::cout << "Usage: Lox [script]";
