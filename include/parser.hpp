@@ -29,6 +29,7 @@ private:
   stmt var_declaration();
   stmt class_declaration();
   FunctionStmtPtr function_declaration(FunctionKind kind);
+  FunctionStmtPtr getter_declaration(Token name);
   stmt statement();
   // This returns a vector so we can inspect the statements for functions and
   // classes, rather than just evaluating the value

@@ -4,8 +4,9 @@
 #include "logging.hpp"
 #include "error.hpp"
 
-Class::Class(std::string _name, FunctionMap _methods, FunctionMap _unbounds)
-    : name(std::move(_name)), methods(std::move(_methods)), unbounds(std::move(_unbounds))
+Class::Class(std::string _name, FunctionMap _methods, FunctionMap _unbounds, FunctionMap _getters)
+    : name(std::move(_name)), methods(std::move(_methods)),
+      unbounds(std::move(_unbounds)), getters(std::move(_getters))
 {
 }
 
@@ -22,7 +23,7 @@ std::string Class::to_string() const
         representation += "\n\t" + unbound.first;
     }
 
-    return representation;
+    return representation + '\n';
 }
 
 size_t Class::arity() const
@@ -58,12 +59,6 @@ std::shared_ptr<Function> Class::get_method(const std::string &name) const
         return methods.at(name);
     }
 
-    LOG_WARNING("Unknown method ", name, ". Existing methods: ");
-    for (const auto &method : methods)
-    {
-        LOG_WARNING(method.first, ": ", method.second->to_string());
-    }
-
     return nullptr;
 }
 
@@ -74,11 +69,15 @@ std::shared_ptr<Function> Class::get_unbound(const Token &name) const
         return unbounds.at(name.lexeme);
     }
 
-    LOG_WARNING("Unknown unbound function ", name, " for class ", this->name, ". Existing unbound functions: ");
-    for (const auto &function : unbounds)
+    throw RuntimeError(name, "Undefined unbound method for class " + this->name);
+}
+
+std::shared_ptr<Function> Class::get_getter(const std::string &name) const
+{
+    if (getters.contains(name))
     {
-        LOG_WARNING(function.first, ": ", function.second->to_string());
+        return getters.at(name);
     }
 
-    throw RuntimeError(name, "Undefined unbound method for class " + this->name);
+    return nullptr;
 }

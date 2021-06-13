@@ -19,7 +19,8 @@ enum class FunctionKind
   METHOD,
   UNBOUND,
   CONSTRUCTOR,
-  LAMDBDA
+  LAMDBDA,
+  GETTER,
 };
 
 std::string str(FunctionKind);
@@ -63,7 +64,7 @@ struct StmtProduction : public Statement, StmtVisitable<id, Types...>
     std::apply([&os](auto &&...args)
                { ((os << args << "\t"), ...); },
                derivatives);
-    os << "\n";
+    os << '\n';
   }
 
   template <size_t index>

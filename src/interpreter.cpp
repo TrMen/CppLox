@@ -22,6 +22,22 @@ Interpreter::Interpreter(std::ostream &_os, std::shared_ptr<ErrorHandler> _err_h
   }
 }
 
+Interpreter::CheckedRecursiveDepth::CheckedRecursiveDepth(Interpreter &_interpreter, const Token &location)
+    : interpreter(_interpreter)
+{
+  interpreter.recursion_depth += 1;
+  if (interpreter.recursion_depth > MAX_RECURSION_DEPTH)
+  {
+    interpreter.recursion_depth -= 1;
+    throw RuntimeError(location, "Maximum recursion depth reached. Are you recursing without basecase?");
+  }
+}
+
+Interpreter::CheckedRecursiveDepth::~CheckedRecursiveDepth()
+{
+  interpreter.recursion_depth -= 1;
+}
+
 //----------Top-level interpretation, evaluation and execution methods----------
 
 void Interpreter::interpret(std::vector<stmt> &statements)
@@ -169,25 +185,43 @@ void Interpreter::visit(ClassStmt &node)
 
   Class::FunctionMap methods;
   Class::FunctionMap unbounds;
+  Class::FunctionMap getters;
   for (const auto &function : node.child<1>())
   {
     const auto &kind = function->child<3>();
-    if (kind == FunctionKind::METHOD || kind == FunctionKind::CONSTRUCTOR)
+    switch (kind)
+    {
+    case FunctionKind::METHOD:
+    case FunctionKind::CONSTRUCTOR:
+    {
       // Every AST node method becomes a runtime function that captures the envrionment
       // This allows methods to keep being associated with their original objects
       methods.emplace(function->child<0>().lexeme,
                       std::make_shared<Function>(function.get(), environment, kind));
-    else if (kind == FunctionKind::UNBOUND)
+      break;
+    }
+    case FunctionKind::UNBOUND:
+    {
       unbounds.emplace(function->child<0>().lexeme,
                        std::make_shared<Function>(function.get(), environment, kind));
-    else
+      break;
+    }
+    case FunctionKind::GETTER:
+    {
+      getters.emplace(function->child<0>().lexeme,
+                      std::make_shared<Function>(function.get(), environment, kind));
+      break;
+    }
+    default:
     {
       LOG_ERROR("Invalid kind: ", kind);
       assert(false);
     }
+    }
   }
 
-  klass.value = std::make_shared<Class>(node.child<0>().lexeme, std::move(methods), std::move(unbounds));
+  klass.value = std::make_shared<Class>(node.child<0>().lexeme, std::move(methods),
+                                        std::move(unbounds), std::move(getters));
 
   environment->define(std::move(klass));
 }
@@ -273,6 +307,7 @@ void Interpreter::visit(Call &node)
 
   if (!std::holds_alternative<std::shared_ptr<Callable>>(callee))
     throw RuntimeError(node.child<1>(), "Can only call functions and classes.");
+
   const auto callable = std::get<std::shared_ptr<Callable>>(callee);
 
   // Check arity (number of arguments)
@@ -291,6 +326,8 @@ void Interpreter::visit(Call &node)
     arguments.push_back(get_evaluated(argument));
   }
 
+  Interpreter::CheckedRecursiveDepth recursionCheck{*this, node.child<1>()};
+
   LOG_DEBUG("Calling callable in visit(Call): ", callable->to_string());
   last_value = callable->call(*this, arguments);
 }
@@ -301,7 +338,7 @@ void Interpreter::visit(Get &node)
 
   if (std::holds_alternative<std::shared_ptr<Instance>>(object))
   {
-    last_value = std::get<std::shared_ptr<Instance>>(object)->get_field(node.child<1>());
+    last_value = std::get<std::shared_ptr<Instance>>(object)->get_field(node.child<1>(), *this);
   }
   else if (auto klass = get_callable_as<Class>(object))
   {
@@ -372,6 +409,8 @@ void Interpreter::visit(Logical &node)
 
 void Interpreter::visit(Variable &node)
 {
+  LOG_DEBUG("Getting variable: ", node.child<0>().lexeme, " at depth ", environment->depth());
+  LOG_DEBUG(environment->to_string_recursive());
   last_value = lookup_variable(node.child<0>(), node);
 }
 

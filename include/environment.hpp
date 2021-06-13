@@ -38,6 +38,10 @@ public:
 
   std::string to_string() const;
 
+  std::string to_string_recursive() const;
+
+  size_t depth() const;
+
   std::unordered_map<std::string, Token::Value> variables;
 };
 

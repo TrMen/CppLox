@@ -1,0 +1,23 @@
+class Foo{
+  init(y)
+  {
+    this.y = y;
+  }
+
+  x {return this.y;}
+}
+
+print Foo(5).x;
+
+class Circle {
+  init(radius) {
+    this.radius = radius;
+  }
+
+  area { // getter that is used when a property of this name is accessed.
+    return 3.141592653 * this.radius * this.radius;
+  }
+}
+
+let circle = Circle(4);
+print circle.area; // Prints roughly "50.2655"

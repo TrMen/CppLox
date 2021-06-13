@@ -42,10 +42,26 @@ struct Interpreter : public ExprVisitor, public StmtVisitor
 
   std::string interpreter_path;
 
+  struct CheckedRecursiveDepth
+  {
+    CheckedRecursiveDepth(Interpreter &, const Token &location);
+    ~CheckedRecursiveDepth();
+    CheckedRecursiveDepth(const CheckedRecursiveDepth &) = delete;
+    CheckedRecursiveDepth operator=(const CheckedRecursiveDepth &) = delete;
+
+    Interpreter &interpreter;
+
+    static constexpr size_t MAX_RECURSION_DEPTH = 1000;
+  };
+
+  CheckedRecursiveDepth with_recursion(Token location);
+
 private:
   DECLARE_STMT_VISIT_METHODS
 
   DECLARE_EXPR_VISIT_METHODS
+
+  size_t recursion_depth = 0;
 
   Token::Value get_evaluated(const expr &node);
 

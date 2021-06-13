@@ -81,6 +81,8 @@ std::string Function::to_string() const
     return "<User method>";
   case FunctionKind::UNBOUND:
     return "<User unbound fn>";
+  case FunctionKind::GETTER:
+    return "<User getter>";
   }
 
   return "";

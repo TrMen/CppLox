@@ -38,4 +38,6 @@ private:
 
     std::optional<FunctionKind> function_kind = std::nullopt;
     ClassKind class_kind = ClassKind::NONE;
+
+    bool function_needs_return = false;
 };

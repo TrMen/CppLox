@@ -18,6 +18,8 @@ std::string str(FunctionKind kind)
         return "constructor";
     case FunctionKind::LAMDBDA:
         return "lambda";
+    case FunctionKind::GETTER:
+        return "getter";
     }
     return "";
 }

@@ -98,6 +98,32 @@ std::string Environment::to_string() const
   return env.str();
 }
 
+std::string Environment::to_string_recursive() const
+{
+  std::string result = to_string();
+  auto env = enclosing;
+  while (env != nullptr)
+  {
+    result += "\nEnclosed by env: \n";
+    result += env->to_string();
+
+    env = env->enclosing;
+  }
+  return result;
+}
+
+size_t Environment::depth() const
+{
+  size_t counter = 0;
+  auto env = enclosing;
+  while (env != nullptr)
+  {
+    env = env->enclosing;
+    ++counter;
+  }
+  return counter;
+}
+
 std::ostream &operator<<(std::ostream &os, const Environment &env)
 {
   return os << env.to_string();

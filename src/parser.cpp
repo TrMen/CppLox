@@ -109,10 +109,21 @@ stmt Parser::statement()
   return expression_statement();
 }
 
+FunctionStmtPtr Parser::getter_declaration(Token name)
+{
+  consume(Type::LEFT_BRACE, "Expect '{' after getter identifier");
+
+  return std::make_unique<FunctionStmt>(std::move(name), std::vector<Token>{}, block(), FunctionKind::GETTER);
+}
+
 FunctionStmtPtr Parser::function_declaration(FunctionKind kind)
 {
-  Token name = consume(Type::IDENTIFIER, "Expected valid identifier as " + str(kind) + " name.");
-  consume(Type::LEFT_PAREN, "Expect '(' after " + str(kind) + " name.");
+  auto name = consume(Type::IDENTIFIER, "Expected valid identifier as " + str(kind) + " name.");
+
+  if (!match(Type::LEFT_PAREN))
+  {
+    return getter_declaration(std::move(name));
+  }
 
   auto params = check(Type::RIGHT_PAREN) ? std::vector<Token>{} : parameters();
 
@@ -131,7 +142,8 @@ stmt Parser::class_declaration()
   std::vector<FunctionStmtPtr> methods;
   while (!check(Type::RIGHT_BRACE) && !is_at_end())
   {
-    auto function_kind = match(Type::UNBOUND) ? FunctionKind::UNBOUND : FunctionKind::METHOD;
+    const auto function_kind = match(Type::UNBOUND) ? FunctionKind::UNBOUND : FunctionKind::METHOD;
+
     methods.push_back(function_declaration(function_kind));
   }
 

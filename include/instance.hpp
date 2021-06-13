@@ -12,14 +12,13 @@ public:
 
     std::string to_string();
 
-    virtual Token::Value get_field(const Token &name);
+    virtual Token::Value get_field(const Token &name, Interpreter &);
 
     virtual void set_field(const Token &name, Token::Value);
 
-protected:
+private:
     // Field are more general than properties. A field is anything defined on an instance, like a method or property
     std::unordered_map<std::string, Token::Value> fields;
 
-private:
     std::shared_ptr<Class> klass;
 };

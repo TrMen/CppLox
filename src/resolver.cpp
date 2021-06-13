@@ -87,11 +87,11 @@ void Resolver::resolve_local(Expr &node, const Token &identifier)
 
     for (const auto &scope : scopes)
     {
+        LOG_DEBUG("Scope:");
         for (const auto &pair : scope)
         {
             LOG_DEBUG(pair.first, ": ", pair.second);
         }
-        Logging::newline(Logging::LogLevel::debug);
     }
 
     for (int i = scopes.size() - 1; i >= 0; --i)
@@ -127,10 +127,12 @@ void Resolver::visit(FunctionStmt &node)
     resolve_function(node.child<1>(), node.child<2>(), node.child<3>());
 }
 
-void Resolver::resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body, FunctionKind type)
+void Resolver::resolve_function(const std::vector<Token> &params, const std::vector<stmt> &body, FunctionKind kind)
 {
     auto enclosing_function = function_kind;
-    function_kind = type;
+    function_kind = kind;
+
+    LOG_DEBUG("Resolving function with kind: ", kind);
 
     scopes.emplace_back();
 
@@ -170,6 +172,8 @@ void Resolver::visit(ReturnStmt &node)
         throw CompiletimeError(node.child<0>(),
                                "Can't return values from 'init' methods. Implicitly returns a new instance of the class");
     }
+    if (function_needs_return && function_kind == FunctionKind::GETTER)
+        function_needs_return = false;
 
     resolve(node.child<1>());
 }
@@ -182,18 +186,25 @@ void Resolver::visit(ClassStmt &node)
     declare(node.child<0>());
     define(node.child<0>());
 
-    scopes.push_back({}); // 'this' variable needs a scope to live in
+    scopes.emplace_back(); // 'this' variable needs a scope to live in
     // 'this' always resolved to a "local" variable that lives just
     // outside the block defined by a class's method
     scopes.back().emplace("this", true);
 
     for (const auto &method : node.child<1>())
     {
+        auto &kind = method->child<3>();
         if (method->child<0>().lexeme == "init")
         {
-            method->child<3>() = FunctionKind::CONSTRUCTOR;
+            kind = FunctionKind::CONSTRUCTOR;
         }
-        resolve_function(method->child<1>(), method->child<2>(), method->child<3>());
+
+        function_needs_return = (kind == FunctionKind::GETTER);
+
+        resolve_function(method->child<1>(), method->child<2>(), kind);
+
+        if (function_needs_return)
+            interpreter.err_handler->warn(method->child<0>(), "Getters must return a value");
     }
 
     scopes.pop_back();
@@ -210,7 +221,7 @@ void Resolver::visit(This &node)
     {
         throw CompiletimeError(node.child<0>(), "Can't use 'this' in unbound methods");
     }
-    // 'this' introduces a local variable in scope. What this actually refers to is evaluated at runtime
+    // 'this' introduces a local variable in scope. What 'this' actually refers to is evaluated at runtime
     resolve_local(node, node.child<0>());
 }
 
