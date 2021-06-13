@@ -23,20 +23,47 @@ cake.flavor = "German chocolate";
 cake.taste(); // Prints "The German chocolate cake is delicious!".
 
 class Foo {
-  init() {
-    this.x = 1;
+  init(x) {
+    this.x = x;
     return; // Empty returns in constructors are allowed for control flow, but not needed
-    // return 2; // Non-empty returns are not
+    // return 2; Non-empty returns are not
   }
 
   printX()
   {
+    print "Base";
     print this.x;
   }
 }
 
-var foo = Foo();
+var foo = Foo(6);
 foo.x = 5;
 foo.printX(); // "5"
-foo.init(); // Can re-initialize object by explicitly calling init()
+foo.init(1); // Can re-initialize object by explicitly calling init()
 foo.printX(); // "1"
+
+
+class DerivedFoo < Foo { // '<' indicated inheritance. Inheritance here just means you can call baseclass methods
+  printX()
+  {
+    print "Derived";
+    print this.x;
+  }
+}
+
+DerivedFoo(2).printX();
+
+class Doughnut {
+  cook() {
+    print "Fry until golden brown.";
+  }
+}
+
+class BostonCream < Doughnut {
+  cook() {
+    super.cook();
+    print "Pipe full of custard and coat with chocolate.";
+  }
+}
+
+BostonCream().cook();

@@ -96,6 +96,12 @@ Token::Value Interpreter::get_evaluated(const expr &expression)
   return last_value;
 }
 
+Token::Value Interpreter::get_evaluated(Expr &expression)
+{
+  dynamic_cast<ExprVisitableBase &>(expression).accept(*this);
+  return last_value;
+}
+
 //---------- Helper functions ------------
 namespace
 {
@@ -179,14 +185,12 @@ void Interpreter::visit(FunctionStmt &node)
   environment->define(std::move(function));
 }
 
-void Interpreter::visit(ClassStmt &node)
+Class::ClassFunctions Interpreter::split_class_functions(const std::vector<FunctionStmtPtr> &class_functions) const
 {
-  auto klass = node.child<0>();
-
   Class::FunctionMap methods;
   Class::FunctionMap unbounds;
   Class::FunctionMap getters;
-  for (const auto &function : node.child<1>())
+  for (const auto &function : class_functions)
   {
     const auto &kind = function->child<3>();
     switch (kind)
@@ -219,17 +223,80 @@ void Interpreter::visit(ClassStmt &node)
     }
     }
   }
+  return {std::move(methods), std::move(unbounds), std::move(getters)};
+}
 
-  klass.value = std::make_shared<Class>(node.child<0>().lexeme, std::move(methods),
-                                        std::move(unbounds), std::move(getters));
+void Interpreter::visit(ClassStmt &node)
+{
+  auto klass = node.child<0>();
+
+  auto &superclass_expr = node.child<2>();
+  ClassPtr superclass = nullptr;
+  if (superclass_expr != nullptr)
+  {
+    superclass = get_callable_as<Class>(get_evaluated(*superclass_expr));
+    if (superclass == nullptr)
+      throw new RuntimeError(superclass_expr->child<0>(), "Superclass must be a class.");
+
+    environment = std::make_shared<Environment>(environment);
+    environment->define("super", superclass); // Unlike 'this', super is defined once per class
+  }
+
+  klass.value = std::make_shared<Class>(node.child<0>().lexeme, std::move(superclass),
+                                        split_class_functions(node.child<1>()));
+
+  if (superclass_expr != nullptr)
+    environment = environment->enclosing; // Pop the 'super' environment
 
   environment->define(std::move(klass));
 }
 
+void Interpreter::visit(Super &node)
+{
+  const auto &name = node.child<1>().lexeme;
+
+  if (node.child<2>()) // In unbound method
+  {
+    // This is a horrible hack. The environment with 'this' doesn't exist in unbound methods,
+    // so we have to look one further up.
+    const auto superclass = get_callable_as<Class>(environment->get_at(*node.depth - 1, "super"));
+
+    if (auto unbound = superclass->get_unbound(name))
+    {
+      last_value = std::move(unbound);
+      return;
+    }
+    else
+      throw RuntimeError(node.child<1>(), "Undefined unbound method. You can only access unbound super methods in an unbound submethod.");
+  }
+
+  // 'this' needs to still be bound to the original object, even though we use a superclass method
+  auto object = std::get<InstancePtr>(environment->get_at(*node.depth - 1, "this"));
+  const auto superclass = get_callable_as<Class>(environment->get_at(*node.depth, "super"));
+
+  if (const auto &method = superclass->get_method(name))
+  {
+    last_value = method->bind(std::move(object));
+  }
+  else if (auto unbound = superclass->get_unbound(name))
+  {
+    last_value = std::move(unbound);
+  }
+  else if (const auto &getter = superclass->get_getter(name))
+  {
+    last_value = getter->bind(std::move(object))->call(*this, {});
+  }
+  else
+  {
+    throw RuntimeError(node.child<1>(),
+                       "Undefined method or unbound function '" + node.child<1>().lexeme +
+                           "' on class '" + superclass->name + '.');
+  }
+}
+
 void Interpreter::visit(IfStmt &node)
 {
-  auto cond = get_evaluated(node.child<0>());
-  if (is_truthy(cond))
+  if (is_truthy(get_evaluated(node.child<0>())))
   {
     execute(node.child<1>());
   }
@@ -260,11 +327,10 @@ void Interpreter::visit(BlockStmt &node)
 void Interpreter::visit(VarStmt &node)
 {
   auto variable = node.child<0>();
-  const expr &initializer = node.child<1>();
   // This will correctly return NullType when the initializer is Empty
-  variable.value = get_evaluated(initializer);
+  variable.value = get_evaluated(node.child<1>());
 
-  environment->define(variable);
+  environment->define(std::move(variable));
 }
 
 void Interpreter::visit(ExprStmt &node)
@@ -305,10 +371,10 @@ void Interpreter::visit(Call &node)
 {
   auto callee = get_evaluated(node.child<0>());
 
-  if (!std::holds_alternative<std::shared_ptr<Callable>>(callee))
+  if (!std::holds_alternative<CallablePtr>(callee))
     throw RuntimeError(node.child<1>(), "Can only call functions and classes.");
 
-  const auto callable = std::get<std::shared_ptr<Callable>>(callee);
+  const auto &callable = std::get<CallablePtr>(callee);
 
   // Check arity (number of arguments)
   if (node.child<2>().size() != callable->arity())
@@ -336,14 +402,17 @@ void Interpreter::visit(Get &node)
 {
   auto object = get_evaluated(node.child<0>());
 
-  if (std::holds_alternative<std::shared_ptr<Instance>>(object))
+  if (std::holds_alternative<InstancePtr>(object))
   {
-    last_value = std::get<std::shared_ptr<Instance>>(object)->get_field(node.child<1>(), *this);
+    last_value = std::get<InstancePtr>(object)->get_field(node.child<1>(), *this);
   }
   else if (auto klass = get_callable_as<Class>(object))
   {
-    LOG_DEBUG("Getting class: ", klass->to_string());
-    last_value = klass->get_unbound(node.child<1>());
+    last_value = klass->get_unbound(node.child<1>().lexeme);
+    if (get_callable_as<Function>(last_value) == nullptr)
+    {
+      throw RuntimeError(node.child<1>(), "Undefined unbound function.");
+    }
   }
   else
   {
@@ -355,14 +424,14 @@ void Interpreter::visit(Set &node)
 {
   auto object = get_evaluated(node.child<0>());
 
-  if (!std::holds_alternative<std::shared_ptr<Instance>>(object))
+  if (!std::holds_alternative<InstancePtr>(object))
   {
     throw RuntimeError(node.child<1>(), "Can only set properties on objects");
   }
 
   auto value = get_evaluated(node.child<2>());
 
-  std::get<std::shared_ptr<Instance>>(object)->set_field(node.child<1>(), value);
+  std::get<InstancePtr>(object)->set_field(node.child<1>(), value);
 
   last_value = std::move(value);
 }
@@ -414,7 +483,7 @@ void Interpreter::visit(Variable &node)
   last_value = lookup_variable(node.child<0>(), node);
 }
 
-Token::Value Interpreter::lookup_variable(const Token &name, const Expr &node)
+const Token::Value &Interpreter::lookup_variable(const Token &name, const Expr &node) const
 {
   if (node.depth.has_value())
   {

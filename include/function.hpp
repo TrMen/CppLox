@@ -26,7 +26,7 @@ public:
   * Note that the Instance will be kept alive due to shared_ptr usage, so returning a bound method
   * from a scope is fine, even though the object goes out of scope. It's value will be kept.
   */
-  std::shared_ptr<Function> bind(std::shared_ptr<Instance>);
+  FunctionPtr bind(InstancePtr);
 
 private:
   const std::variant<const FunctionStmt *, const Lambda *> declaration;

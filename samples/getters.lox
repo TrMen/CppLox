@@ -19,5 +19,20 @@ class Circle {
   }
 }
 
-let circle = Circle(4);
-print circle.area; // Prints roughly "50.2655"
+class DiameterCircle < Circle {
+  init(diameter) {
+    this.radius = diameter / 2;
+  }
+
+  doubleArea {
+    return super.area * 2;
+  }
+}
+
+
+
+print Circle(4).area; // Prints roughly "50.2655"
+
+print DiameterCircle(4).area; // Print roughly "12.5663"
+
+print DiameterCircle(4).doubleArea;

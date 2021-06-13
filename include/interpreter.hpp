@@ -1,11 +1,13 @@
 #pragma once
 
 #include "environment.hpp"
+
+#include <vector>
+
+#include "class.hpp"
 #include "error.hpp"
 #include "expr.hpp"
 #include "stmt.hpp"
-#include <exception>
-#include <vector>
 
 class Parser;
 
@@ -54,8 +56,6 @@ struct Interpreter : public ExprVisitor, public StmtVisitor
     static constexpr size_t MAX_RECURSION_DEPTH = 1000;
   };
 
-  CheckedRecursiveDepth with_recursion(Token location);
-
 private:
   DECLARE_STMT_VISIT_METHODS
 
@@ -64,6 +64,9 @@ private:
   size_t recursion_depth = 0;
 
   Token::Value get_evaluated(const expr &node);
+  Token::Value get_evaluated(Expr &node);
 
-  Token::Value lookup_variable(const Token &name, const Expr &);
+  Class::ClassFunctions split_class_functions(const std::vector<FunctionStmtPtr> &class_functions) const;
+
+  const Token::Value &lookup_variable(const Token &name, const Expr &) const;
 };

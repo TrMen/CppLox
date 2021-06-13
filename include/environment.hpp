@@ -18,12 +18,12 @@ public:
 
   /// Get a variable value by the name of the supplied token.
   /// @throws RuntimeError on unknown variable access.
-  Token::Value get(const Token &token) const;
+  const Token::Value &get(const Token &token) const;
 
   /// Get a variable value by the name.
   /// This assumes the variable is found in the index'th nested environment
   /// Unlike for get(), this variable must be present
-  Token::Value get_at(size_t depth, const std::string &name) const;
+  const Token::Value &get_at(size_t depth, const std::string &name) const;
 
   /// Assign a new value to an existing variable.
   /// @throws RuntimeError on unknown variable access.

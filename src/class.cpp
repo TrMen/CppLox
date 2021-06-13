@@ -4,9 +4,9 @@
 #include "logging.hpp"
 #include "error.hpp"
 
-Class::Class(std::string _name, FunctionMap _methods, FunctionMap _unbounds, FunctionMap _getters)
-    : name(std::move(_name)), methods(std::move(_methods)),
-      unbounds(std::move(_unbounds)), getters(std::move(_getters))
+Class::Class(std::string _name, ClassPtr _superclass, ClassFunctions _functions)
+    : name(std::move(_name)), superclass(std::move(_superclass)), methods(std::get<0>(_functions)),
+      unbounds(std::move(std::get<1>(_functions))), getters(std::move(std::get<2>(_functions)))
 {
 }
 
@@ -28,7 +28,7 @@ std::string Class::to_string() const
 
 size_t Class::arity() const
 {
-    if (auto constructor = get_method("init"))
+    if (const auto &constructor = get_method("init"))
     {
         return constructor->arity();
     }
@@ -44,7 +44,7 @@ Token::Value Class::call(Interpreter &interpreter, const std::vector<Token::Valu
     LOG_DEBUG("Created instance successfully");
 
     // Run constructor method when class is called. Class-call args become constructor args
-    if (auto constructor = get_method("init"))
+    if (const auto &constructor = get_method("init"))
     {
         constructor->bind(instance)->call(interpreter, arguments);
     }
@@ -52,32 +52,47 @@ Token::Value Class::call(Interpreter &interpreter, const std::vector<Token::Valu
     return instance;
 }
 
-std::shared_ptr<Function> Class::get_method(const std::string &name) const
+const FunctionPtr &Class::get_method(const std::string &name) const
 {
     if (methods.contains(name))
     {
         return methods.at(name);
     }
 
-    return nullptr;
-}
-
-std::shared_ptr<Function> Class::get_unbound(const Token &name) const
-{
-    if (unbounds.contains(name.lexeme))
+    if (superclass != nullptr)
     {
-        return unbounds.at(name.lexeme);
+        return superclass->get_method(name);
     }
 
-    throw RuntimeError(name, "Undefined unbound method for class " + this->name);
+    return nullRef;
 }
 
-std::shared_ptr<Function> Class::get_getter(const std::string &name) const
+const FunctionPtr &Class::get_unbound(const std::string &name) const
+{
+    if (unbounds.contains(name))
+    {
+        return unbounds.at(name);
+    }
+
+    if (superclass != nullptr)
+    {
+        return superclass->get_unbound(name);
+    }
+
+    return nullRef;
+}
+
+const FunctionPtr &Class::get_getter(const std::string &name) const
 {
     if (getters.contains(name))
     {
         return getters.at(name);
     }
 
-    return nullptr;
+    if (superclass != nullptr)
+    {
+        return superclass->get_getter(name);
+    }
+
+    return nullRef;
 }

@@ -88,9 +88,9 @@ std::string Function::to_string() const
   return "";
 }
 
-std::shared_ptr<Function> Function::bind(std::shared_ptr<Instance> instance)
+FunctionPtr Function::bind(InstancePtr instance)
 {
   auto env = std::make_shared<Environment>(closure);
-  env->define("this", instance);
-  return std::make_shared<Function>(declaration, env, kind);
+  env->define("this", std::move(instance));
+  return std::make_shared<Function>(declaration, std::move(env), kind);
 }

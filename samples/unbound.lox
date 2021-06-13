@@ -15,8 +15,31 @@ class Math {
   }
 }
 
+class BetterMath < Math {
+  unbound square (n) {
+    print "Derived better math";
+    let originalN = n;
+    let square = 0;
+    while(n > 0)
+    {
+      square = square + originalN;
+      n = n - 1;
+    }
+    return square;
+  }
+
+  unbound superSquare(n)
+  {
+    return super.square(n); // Can access unbound super class functions, but no methods or getters (both bound)
+  }
+}
+
 print Math.square(3); // Prints "9".
 print Math(5).square(); // Prints "25"
 
 let x = Math.square;
 print x(5); // "25"
+
+print BetterMath.square(5);
+
+print BetterMath.superSquare(6);

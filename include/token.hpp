@@ -18,6 +18,11 @@ struct Class;
 struct Function;
 struct Instance;
 
+using InstancePtr = std::shared_ptr<Instance>;
+using CallablePtr = std::shared_ptr<Callable>;
+using FunctionPtr = std::shared_ptr<Function>;
+using ClassPtr = std::shared_ptr<Class>;
+
 std::ostream &operator<<(std::ostream &os, const NullType &rhs);
 
 struct Token
@@ -79,7 +84,7 @@ struct Token
 
   using Value =
       std::variant<double, std::string, NullType, bool,
-                   std::shared_ptr<Callable>, std::shared_ptr<Instance>>;
+                   CallablePtr, InstancePtr>;
 
   Token(TokenType _type, std::string _lexeme, Value _value,
         unsigned int _line);
@@ -103,9 +108,9 @@ std::shared_ptr<T> get_callable_as(const Token::Value &value)
 {
   static_assert(std::is_same_v<T, Class> || std::is_same_v<T, Function>, "Callable must be a class or function");
 
-  if (std::holds_alternative<std::shared_ptr<Callable>>(value))
+  if (std::holds_alternative<CallablePtr>(value))
   {
-    if (auto casted = std::dynamic_pointer_cast<T>(std::get<std::shared_ptr<Callable>>(value)))
+    if (auto casted = std::dynamic_pointer_cast<T>(std::get<CallablePtr>(value)))
     {
       return casted;
     }

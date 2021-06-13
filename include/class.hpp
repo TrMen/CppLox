@@ -5,9 +5,11 @@
 class Class : public Callable, public std::enable_shared_from_this<Class>
 {
 public:
-    using FunctionMap = std::unordered_map<std::string, std::shared_ptr<Function>>;
+    using FunctionMap = std::unordered_map<std::string, FunctionPtr>;
+    /// (methods, unbounds, getters)
+    using ClassFunctions = std::tuple<Class::FunctionMap, Class::FunctionMap, Class::FunctionMap>;
 
-    Class(std::string _name, FunctionMap _methods, FunctionMap unbounds, FunctionMap getters);
+    Class(std::string _name, ClassPtr superclass, ClassFunctions);
 
     Token::Value call(Interpreter &, const std::vector<Token::Value> &arguments) override;
 
@@ -15,16 +17,20 @@ public:
 
     size_t arity() const override;
 
-    std::shared_ptr<Function> get_method(const std::string &name) const;
+    const FunctionPtr &get_method(const std::string &name) const;
 
-    std::shared_ptr<Function> get_unbound(const Token &name) const;
+    const FunctionPtr &get_unbound(const std::string &name) const;
 
-    std::shared_ptr<Function> get_getter(const std::string &name) const;
+    const FunctionPtr &get_getter(const std::string &name) const;
 
     const std::string name;
 
 private:
+    ClassPtr superclass;
+
     FunctionMap methods;
     FunctionMap unbounds;
     FunctionMap getters;
+
+    const FunctionPtr nullRef = nullptr;
 };

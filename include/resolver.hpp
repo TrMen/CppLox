@@ -18,6 +18,7 @@ private:
     DECLARE_EXPR_VISIT_METHODS
 
     void resolve(const expr &);
+    void resolve(Expr *);
 
     void declare(const Token &identifier);
     void define(const Token &identifier);
@@ -26,6 +27,7 @@ private:
     {
         NONE,
         CLASS,
+        SUBCLASS
     };
 
     void resolve_local(Expr &node, const Token &identifier);

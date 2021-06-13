@@ -39,7 +39,7 @@ using WhileStmt = StmtProduction<7, expr, stmt>;                                
 using FunctionStmt = StmtProduction<8, Token, std::vector<Token>, std::vector<stmt>, FunctionKind>;        // name params body kind
 using ReturnStmt = StmtProduction<9, Token, expr>;                                                         // 'return' body
 using FunctionStmtPtr = std::unique_ptr<FunctionStmt>;        
-using ClassStmt = StmtProduction<10, Token, std::vector<FunctionStmtPtr>>;                                 // name methods
+using ClassStmt = StmtProduction<10, Token, std::vector<FunctionStmtPtr>, VarPtr>;                         // name methods superclass
 // clang-format on
 
 #define STMT_TYPES PrintStmt, ExprStmt, VarStmt, MalformedStmt, BlockStmt, IfStmt, \

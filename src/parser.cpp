@@ -137,6 +137,13 @@ stmt Parser::class_declaration()
 {
   auto name = consume(Type::IDENTIFIER, "Expect class name after 'class' keyword");
 
+  VarPtr superclass = nullptr;
+  if (match(Type::LESS))
+  {
+    auto superclass_name = consume(Type::IDENTIFIER, "Expect superclass name");
+    superclass = std::make_unique<Variable>(std::move(superclass_name));
+  }
+
   consume(Type::LEFT_BRACE, "Expect '{' after class identifier");
 
   std::vector<FunctionStmtPtr> methods;
@@ -144,12 +151,12 @@ stmt Parser::class_declaration()
   {
     const auto function_kind = match(Type::UNBOUND) ? FunctionKind::UNBOUND : FunctionKind::METHOD;
 
-    methods.push_back(function_declaration(function_kind));
+    methods.emplace_back(function_declaration(function_kind));
   }
 
   consume(Type::RIGHT_BRACE, "Expect '}' after class body");
 
-  return new_stmt<ClassStmt>(std::move(name), std::move(methods));
+  return new_stmt<ClassStmt>(std::move(name), std::move(methods), std::move(superclass));
 }
 
 std::vector<Token> Parser::parameters()
@@ -529,6 +536,14 @@ expr Parser::primary()
     expr middle = expression();
     consume(Type::RIGHT_PAREN, "Expected ')' after expression");
     return new_expr<Grouping>(std::move(middle));
+  }
+
+  if (match(Type::SUPER))
+  {
+    auto super_keyword = previous();
+    consume(Type::DOT, "Expect '.' after super");
+    return new_expr<Super>(std::move(super_keyword),
+                           cp(consume(Type::IDENTIFIER, "Expect identifier for super access")), false);
   }
 
   if (match(Type::PIPE))

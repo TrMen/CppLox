@@ -4,7 +4,7 @@
 #include "interpreter.hpp"
 #include "error.hpp"
 
-Instance::Instance(std::shared_ptr<Class> _klass)
+Instance::Instance(ClassPtr _klass)
     : klass(std::move(_klass)) {}
 
 std::string Instance::to_string()
@@ -14,7 +14,7 @@ std::string Instance::to_string()
 
 Token::Value Instance::get_field(const Token &name, Interpreter &interpreter)
 {
-    if (auto getter = klass->get_getter(name.lexeme))
+    if (const auto &getter = klass->get_getter(name.lexeme))
     {
         Interpreter::CheckedRecursiveDepth recursionCheck{interpreter, name};
         return getter->bind(shared_from_this())->call(interpreter, {});
@@ -31,7 +31,7 @@ Token::Value Instance::get_field(const Token &name, Interpreter &interpreter)
         LOG_WARNING(field.first, ": ", field.second);
     }
 
-    if (auto method = klass->get_method(name.lexeme))
+    if (const auto &method = klass->get_method(name.lexeme))
     {
         // Create new env
         // Bind assign to the name of the variable the method was called on

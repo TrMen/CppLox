@@ -26,13 +26,12 @@ void Environment::define(std::string identifier, Token::Value value)
   variables.emplace(std::move(identifier), std::move(value));
 }
 
-Token::Value Environment::get(const Token &token) const
+const Token::Value &Environment::get(const Token &token) const
 {
-  auto elem = variables.find(token.lexeme);
   LOG_DEBUG("Getting variable ", token.lexeme, " from : ", *this);
-  if (elem != variables.cend())
+  if (variables.contains(token.lexeme))
   {
-    return elem->second;
+    return variables.at(token.lexeme);
   }
   if (enclosing != nullptr)
   {
@@ -55,7 +54,7 @@ namespace
   }
 }
 
-Token::Value Environment::get_at(size_t depth, const std::string &name) const
+const Token::Value &Environment::get_at(size_t depth, const std::string &name) const
 {
   LOG_DEBUG("Get ", name, " at depth: ", depth, " with env:", depth, *ancestor(this, depth));
   // Existence must be ensured by resolver

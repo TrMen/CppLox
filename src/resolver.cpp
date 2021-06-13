@@ -1,5 +1,7 @@
 #include "resolver.hpp"
 
+#include <cassert>
+
 #include "logging.hpp"
 
 Resolver::Resolver(Interpreter &_interpreter)
@@ -9,14 +11,21 @@ Resolver::Resolver(Interpreter &_interpreter)
 
 void Resolver::resolve(const expr &expression)
 {
-    dynamic_cast<ExprVisitableBase &>(*expression).accept(*this);
+    resolve(expression.get());
+}
+
+void Resolver::resolve(Expr *expression)
+{
+    if (expression != nullptr)
+        dynamic_cast<ExprVisitableBase &>(*expression).accept(*this);
 }
 
 void Resolver::resolve(const stmt &statement)
 {
     try
     {
-        dynamic_cast<StmtVisitableBase &>(*statement).accept(*this);
+        if (statement != nullptr)
+            dynamic_cast<StmtVisitableBase &>(*statement).accept(*this);
     }
     catch (const CompiletimeError &err)
     {
@@ -186,6 +195,24 @@ void Resolver::visit(ClassStmt &node)
     declare(node.child<0>());
     define(node.child<0>());
 
+    const auto &superclass = node.child<2>();
+    if (superclass != nullptr && superclass->child<0>().lexeme == node.child<0>().lexeme)
+        throw CompiletimeError(superclass->child<0>(), "A class can't inherit from itself.");
+
+    auto previous_class_kind = class_kind;
+
+    if (superclass != nullptr)
+    {
+        class_kind = ClassKind::SUBCLASS;
+
+        resolve(superclass.get());
+        scopes.emplace_back();
+        // Like 'this', 'super' is just a variable that lives in an outer scope.
+        // 'super' is only bound once per class, rather than per instance. The difference is in
+        // the interpreter
+        scopes.back().emplace("super", true);
+    }
+
     scopes.emplace_back(); // 'this' variable needs a scope to live in
     // 'this' always resolved to a "local" variable that lives just
     // outside the block defined by a class's method
@@ -208,6 +235,13 @@ void Resolver::visit(ClassStmt &node)
     }
 
     scopes.pop_back();
+
+    if (superclass != nullptr)
+    {
+        scopes.pop_back();
+        class_kind = previous_class_kind;
+    }
+
     class_kind = previous_type;
 }
 
@@ -222,6 +256,20 @@ void Resolver::visit(This &node)
         throw CompiletimeError(node.child<0>(), "Can't use 'this' in unbound methods");
     }
     // 'this' introduces a local variable in scope. What 'this' actually refers to is evaluated at runtime
+    resolve_local(node, node.child<0>());
+}
+
+void Resolver::visit(Super &node)
+{
+    if (class_kind == ClassKind::NONE)
+        throw CompiletimeError(node.child<0>(), "Can't use 'super' keyword outside of a class.");
+    else if (class_kind != ClassKind::SUBCLASS)
+        throw CompiletimeError(node.child<0>(), "Can't use 'super' keyword in a class with no superclass");
+
+    // Annotate function kind so the interpreter knows whether we are in unbound
+    node.child<2>() = function_kind.has_value() && *function_kind == FunctionKind::UNBOUND;
+
+    // Resolve the 'super' token as if it were a local variable
     resolve_local(node, node.child<0>());
 }
 

@@ -73,13 +73,13 @@ std::string stringify(const Token::Value &arg)
   {
     return std::get<std::string>(arg);
   }
-  if (std::holds_alternative<std::shared_ptr<Callable>>(arg))
+  if (std::holds_alternative<CallablePtr>(arg))
   {
-    return std::get<std::shared_ptr<Callable>>(arg)->to_string();
+    return std::get<CallablePtr>(arg)->to_string();
   }
-  if (std::holds_alternative<std::shared_ptr<Instance>>(arg))
+  if (std::holds_alternative<InstancePtr>(arg))
   {
-    return std::get<std::shared_ptr<Instance>>(arg)->to_string();
+    return std::get<InstancePtr>(arg)->to_string();
   }
 
   assert(false);
