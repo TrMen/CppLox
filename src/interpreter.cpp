@@ -105,30 +105,26 @@ Token::Value Interpreter::get_evaluated(Expr &expression)
 //---------- Helper functions ------------
 namespace
 {
+  template <class... Ts>
+  struct overloaded : Ts...
+  {
+    // Used to combine the operator() from multiple lambdas
+    using Ts::operator()...;
+  };
+  // Explicit deduction guide. Shouldn't be needed for C++20, but doesn't compile without
+  template <class... Ts>
+  overloaded(Ts...) -> overloaded<Ts...>;
+
   /* All values except NullType and the bool false are truthy, including "", 0, functions, callables*/
   bool is_truthy(const Token::Value &value)
   {
-    bool truthy = false;
-    std::visit(
-        [&truthy](auto &&arg)
-        {
-          using T = std::decay_t<decltype(arg)>;
-          if constexpr (std::is_same_v<T, NullType>)
-          {
-            truthy = false;
-          }
-          else if constexpr (std::is_same_v<T, bool>)
-          {
-            truthy = arg;
-          }
-          else
-          {
-            truthy = true;
-          }
-        },
-        value);
-
-    return truthy;
+    // clang-format off
+    return std::visit(
+        overloaded{[](bool condition) { return condition; },
+                   [](NullType) { return false; },
+                   [](auto &&) { return true; }
+        }, value);
+    // clang-format on
   }
 
   /// Operands are variants. Returns true only of all variants hold value_type
@@ -402,11 +398,11 @@ void Interpreter::visit(Get &node)
 {
   auto object = get_evaluated(node.child<0>());
 
-  if (std::holds_alternative<InstancePtr>(object))
+  if (const auto *obj = std::get_if<InstancePtr>(&object))
   {
-    last_value = std::get<InstancePtr>(object)->get_field(node.child<1>(), *this);
+    last_value = (*obj)->get_field(node.child<1>(), *this);
   }
-  else if (auto klass = get_callable_as<Class>(object))
+  else if (const auto klass = get_callable_as<Class>(object))
   {
     last_value = klass->get_unbound(node.child<1>().lexeme);
     if (get_callable_as<Function>(last_value) == nullptr)

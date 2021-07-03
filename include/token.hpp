@@ -8,6 +8,7 @@
 struct NullType
 {
 };
+
 bool operator==([[maybe_unused]] const NullType &lhs,
                 [[maybe_unused]] const NullType &rhs);
 bool operator!=([[maybe_unused]] const NullType &lhs,
@@ -108,9 +109,9 @@ std::shared_ptr<T> get_callable_as(const Token::Value &value)
 {
   static_assert(std::is_same_v<T, Class> || std::is_same_v<T, Function>, "Callable must be a class or function");
 
-  if (std::holds_alternative<CallablePtr>(value))
+  if (const auto *val = std::get_if<CallablePtr>(&value))
   {
-    if (auto casted = std::dynamic_pointer_cast<T>(std::get<CallablePtr>(value)))
+    if (auto casted = std::dynamic_pointer_cast<T>(*val))
     {
       return casted;
     }

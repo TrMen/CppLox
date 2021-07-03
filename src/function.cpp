@@ -15,20 +15,20 @@ Function::Function(const std::variant<const FunctionStmt *, const Lambda *> &_de
 
 const std::vector<Token> &Function::parameters() const
 {
-  if (std::holds_alternative<FuncPtr>(declaration))
-    return std::get<FuncPtr>(declaration)->child<1>();
-  else if (std::holds_alternative<LambdaPtr>(declaration))
-    return std::get<LambdaPtr>(declaration)->child<0>();
+  if (const auto *decl = std::get_if<FuncPtr>(&declaration))
+    return (*decl)->child<1>();
+  else if (const auto *decl = std::get_if<LambdaPtr>(&declaration))
+    return (*decl)->child<0>();
 
   assert(false);
 }
 
 const std::vector<stmt> &Function::body() const
 {
-  if (std::holds_alternative<FuncPtr>(declaration))
-    return std::get<FuncPtr>(declaration)->child<2>();
-  else if (std::holds_alternative<LambdaPtr>(declaration))
-    return std::get<LambdaPtr>(declaration)->child<1>();
+  if (const auto *decl = std::get_if<FuncPtr>(&declaration))
+    return (*decl)->child<2>();
+  else if (const auto *decl = std::get_if<LambdaPtr>(&declaration))
+    return (*decl)->child<1>();
 
   assert(false);
 }

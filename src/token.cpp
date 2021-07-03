@@ -48,41 +48,41 @@ std::ostream &operator<<(std::ostream &os, const std::vector<Token> &tokens)
   return os;
 }
 
-std::string stringify(const Token::Value &arg)
+struct StringifyVisitor
 {
-  if (std::holds_alternative<bool>(arg))
+  std::string operator()(bool arg)
   {
-    return std::get<bool>(arg) ? "true" : "false";
+    return arg ? "true" : "false";
   }
-  if (std::holds_alternative<NullType>(arg))
+  std::string operator()(NullType)
   {
     return "nil";
   }
-  if (std::holds_alternative<double>(arg))
+  std::string operator()(const std::string &arg)
   {
-    double num = std::get<double>(arg);
+    return arg;
+  }
+  std::string operator()(double num)
+  {
     if (std::floor(num) == num)
     {
       return std::to_string(static_cast<int>(num));
     }
-    {
-      return std::to_string(num);
-    }
+    return std::to_string(num);
   }
-  if (std::holds_alternative<std::string>(arg))
+  std::string operator()(const CallablePtr &arg)
   {
-    return std::get<std::string>(arg);
+    return arg->to_string();
   }
-  if (std::holds_alternative<CallablePtr>(arg))
+  std::string operator()(const InstancePtr &arg)
   {
-    return std::get<CallablePtr>(arg)->to_string();
+    return arg->to_string();
   }
-  if (std::holds_alternative<InstancePtr>(arg))
-  {
-    return std::get<InstancePtr>(arg)->to_string();
-  }
+};
 
-  assert(false);
+std::string stringify(const Token::Value &arg)
+{
+  return std::visit(StringifyVisitor{}, arg);
 }
 
 std::ostream &operator<<(std::ostream &os, const Token::Value &value)
