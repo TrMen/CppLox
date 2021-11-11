@@ -9,10 +9,8 @@ struct NullType
 {
 };
 
-bool operator==([[maybe_unused]] const NullType &lhs,
-                [[maybe_unused]] const NullType &rhs);
-bool operator!=([[maybe_unused]] const NullType &lhs,
-                [[maybe_unused]] const NullType &rhs);
+bool operator==(const NullType &, const NullType &);
+bool operator!=(const NullType &, const NullType &);
 
 struct Callable;
 struct Class;
@@ -80,7 +78,7 @@ struct Token
     WHILE,
     UNBOUND, // For methods that aren't bound (static methods)
 
-    _EOF
+    EOF_
   };
 
   using Value =

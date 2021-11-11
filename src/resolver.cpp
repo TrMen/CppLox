@@ -17,7 +17,9 @@ void Resolver::resolve(const expr &expression)
 void Resolver::resolve(Expr *expression)
 {
     if (expression != nullptr)
+    {
         dynamic_cast<ExprVisitableBase &>(*expression).accept(*this);
+    }
 }
 
 void Resolver::resolve(const stmt &statement)
@@ -25,7 +27,9 @@ void Resolver::resolve(const stmt &statement)
     try
     {
         if (statement != nullptr)
+        {
             dynamic_cast<StmtVisitableBase &>(*statement).accept(*this);
+        }
     }
     catch (const CompiletimeError &err)
     {
@@ -176,13 +180,15 @@ void Resolver::visit(ReturnStmt &node)
     {
         throw CompiletimeError(node.child<0>(), "Can't return from top-level code");
     }
-    if (*function_kind == FunctionKind::CONSTRUCTOR && not dynamic_cast<Empty *>(node.child<1>().get()))
+    if (*function_kind == FunctionKind::CONSTRUCTOR && dynamic_cast<Empty *>(node.child<1>().get()) == nullptr)
     {
         throw CompiletimeError(node.child<0>(),
                                "Can't return values from 'init' methods. Implicitly returns a new instance of the class");
     }
     if (function_needs_return && function_kind == FunctionKind::GETTER)
+    {
         function_needs_return = false;
+    }
 
     resolve(node.child<1>());
 }
@@ -197,7 +203,9 @@ void Resolver::visit(ClassStmt &node)
 
     const auto &superclass = node.child<2>();
     if (superclass != nullptr && superclass->child<0>().lexeme == node.child<0>().lexeme)
+    {
         throw CompiletimeError(superclass->child<0>(), "A class can't inherit from itself.");
+    }
 
     auto previous_class_kind = class_kind;
 
@@ -231,7 +239,9 @@ void Resolver::visit(ClassStmt &node)
         resolve_function(method->child<1>(), method->child<2>(), kind);
 
         if (function_needs_return)
+        {
             interpreter.err_handler->warn(method->child<0>(), "Getters must return a value");
+        }
     }
 
     scopes.pop_back();
@@ -262,9 +272,13 @@ void Resolver::visit(This &node)
 void Resolver::visit(Super &node)
 {
     if (class_kind == ClassKind::NONE)
+    {
         throw CompiletimeError(node.child<0>(), "Can't use 'super' keyword outside of a class.");
-    else if (class_kind != ClassKind::SUBCLASS)
+    }
+    if (class_kind != ClassKind::SUBCLASS)
+    {
         throw CompiletimeError(node.child<0>(), "Can't use 'super' keyword in a class with no superclass");
+    }
 
     // Annotate function kind so the interpreter knows whether we are in unbound
     node.child<2>() = function_kind.has_value() && *function_kind == FunctionKind::UNBOUND;

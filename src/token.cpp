@@ -1,7 +1,7 @@
 #include "token.hpp"
 
-#include <cmath>
 #include <cassert>
+#include <cmath>
 
 #include "callable.hpp"
 #include "error.hpp"

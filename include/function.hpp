@@ -1,23 +1,23 @@
 #pragma once
 
-#include "callable.hpp"
-#include "stmt.hpp"
-#include "environment.hpp"
 #include <vector>
 
-class Function : public Callable
+#include "callable.hpp"
+#include "environment.hpp"
+#include "stmt.hpp"
+
+struct Function : public Callable
 {
-public:
   Function(const std::variant<const FunctionStmt *, const Lambda *> &declaration,
            std::shared_ptr<Environment> closure, FunctionKind kind);
 
   Token::Value call(Interpreter &interpreter, const std::vector<Token::Value> &arguments) override;
 
-  size_t arity() const override;
-  std::string to_string() const override;
+  [[nodiscard]] size_t arity() const override;
+  [[nodiscard]] std::string to_string() const override;
 
-  const std::vector<Token> &parameters() const;
-  const std::vector<stmt> &body() const;
+  [[nodiscard]] const std::vector<Token> &parameters() const;
+  [[nodiscard]] const std::vector<stmt> &body() const;
 
   /* Create a bound method fron this function. A bound method is a method that is identical in AST
   * but has an implicit 'this' variable that is always accessible.

@@ -15,4 +15,6 @@ add_subdirectory(src)
 # add the executable
 add_executable(Lox main.cpp)
 
+set (CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 target_link_libraries(Lox PUBLIC Error Lexer Interpreter Expr Error Parser Stmt Token Environment Function Buildin Logging Resolver Class Instance)

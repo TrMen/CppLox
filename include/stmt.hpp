@@ -5,7 +5,13 @@
 
 struct Statement
 {
+  Statement() noexcept = default;
   virtual ~Statement();
+  Statement(const Statement &) = default;
+  Statement(Statement &&) = default;
+  Statement &operator=(Statement &&) noexcept = default;
+  Statement &operator=(const Statement &) = default;
+
   virtual void print(std::ostream &os) const = 0;
 };
 using stmt = std::unique_ptr<Statement>;
@@ -46,22 +52,22 @@ using ClassStmt = StmtProduction<10, Token, std::vector<FunctionStmtPtr>, VarPtr
                    EmptyStmt, WhileStmt, FunctionStmt, ReturnStmt, ClassStmt
 
 template <int id, typename... Types>
-using StmtVisitable = VisitableImpl<StmtProduction<id, Types...>, STMT_TYPES>;
+using StmtProductionVisitableImpl = VisitableImpl<StmtProduction<id, Types...>, STMT_TYPES>;
 using StmtVisitor = Visitor<STMT_TYPES>;
 using StmtVisitableBase = Visitable<STMT_TYPES>;
 
 /// A production for statements.
 /// id is for disambiguation for identical template args
 template <int id, typename... Types>
-struct StmtProduction : public Statement, StmtVisitable<id, Types...>
+struct StmtProduction : public Statement, public StmtProductionVisitableImpl<id, Types...>
 {
-  explicit StmtProduction(Types &&...args)
-      : derivatives(std::forward<Types>(args)...) {}
+  explicit StmtProduction(Types... args)
+      : derivatives(std::move(args)...) {}
 
   void print(std::ostream &os) const override
   {
     os << "Statement: \n\t";
-    std::apply([&os](auto &&...args)
+    std::apply([&os](const auto &...args)
                { ((os << args << "\t"), ...); },
                derivatives);
     os << '\n';

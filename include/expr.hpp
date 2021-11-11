@@ -1,8 +1,8 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <optional>
+#include <vector>
 
 #include "token.hpp"
 #include "visitor.hpp"
@@ -15,7 +15,14 @@ T cp(const T &in)
 
 struct Expr
 {
+  Expr() = default;
   virtual ~Expr();
+
+  Expr(const Expr &) = default;
+  Expr(Expr &&) = default;
+  Expr &operator=(const Expr &) = default;
+  Expr &operator=(Expr &&) = default;
+
   virtual void print(std::ostream &os) const = 0;
 
   // For resolving scope depth.
@@ -27,7 +34,7 @@ using expr = std::unique_ptr<Expr>;
 template <int id, typename... Types>
 struct ExprProduction;
 
-class Statement;
+struct Statement;
 using stmt = std::unique_ptr<Statement>;
 
 // ---------------------Alias definitions for convenience---------------------
@@ -57,16 +64,15 @@ using Super = ExprProduction<15, Token, Token, bool>;                           
 
 using ExprVisitableBase = Visitable<EXPR_TYPES>;
 template <int id, typename... Types>
-using ProductionVisitableImpl = VisitableImpl<ExprProduction<id, Types...>, EXPR_TYPES>;
+using ExprProductionVisitableImpl = VisitableImpl<ExprProduction<id, Types...>, EXPR_TYPES>;
 using ExprVisitor = Visitor<EXPR_TYPES>;
 
 //--------------------End of alias definitions--------------------------------
 
 /// A generic production for an expression. id is for disambiguation
 template <int id, typename... Types>
-struct ExprProduction : public Expr, public ProductionVisitableImpl<id, Types...>
+struct ExprProduction : public Expr, public ExprProductionVisitableImpl<id, Types...>
 {
-public:
   explicit ExprProduction(Types &&...args)
       : derivatives(std::forward<Types>(args)...) {}
 
@@ -80,13 +86,13 @@ public:
   }
 
   template <size_t index>
-  decltype(auto) child()
+  [[nodiscard]] decltype(auto) child()
   {
     return std::get<index>(derivatives);
   }
 
   template <size_t index>
-  decltype(auto) child() const
+  [[nodiscard]] decltype(auto) child() const
   {
     const auto &elem = std::get<index>(derivatives);
     return elem;

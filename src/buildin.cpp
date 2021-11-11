@@ -1,26 +1,25 @@
 #include "buildin.hpp"
 
 #include <chrono>
-#include <unordered_map>
-#include <sstream>
 #include <filesystem>
+#include <sstream>
+#include <unordered_map>
 
-#include "logging.hpp"
-#include "error.hpp"
 #include "callable.hpp"
+#include "error.hpp"
 #include "interpreter.hpp"
 #include "lexer.hpp"
+#include "logging.hpp"
 #include "parser.hpp"
 #include "resolver.hpp"
 
 namespace
 {
-    using namespace std::chrono;
-
     /// Build-in function with 0 parameters
     template <typename Closure>
     struct SimpleBuildin : public Callable
     {
+    public:
         SimpleBuildin(std::string _name, Closure _action)
             : name(std::move(_name)), action(std::move(_action)) {}
 
@@ -29,9 +28,9 @@ namespace
             return Token::Value(action(interpreter));
         }
 
-        size_t arity() const override { return 0; }
+        [[nodiscard]] size_t arity() const override { return 0; }
 
-        std::string to_string() const override { return "<Native fn '" + name + "'>"; }
+        [[nodiscard]] std::string to_string() const override { return "<Native fn '" + name + "'>"; }
 
     private:
         const std::string name;
@@ -40,6 +39,7 @@ namespace
 
     struct SetLogLevel : public Callable
     {
+    public:
         Token::Value call(Interpreter &, const std::vector<Token::Value> &arguments) override
         {
             using Logging::LogLevel;
@@ -62,13 +62,14 @@ namespace
             return NullType{};
         }
 
-        size_t arity() const override { return 1; }
+        [[nodiscard]] size_t arity() const override { return 1; }
 
-        std::string to_string() const override { return "<Native fn 'setLogLevel'>"; }
+        [[nodiscard]] std::string to_string() const override { return "<Native fn 'setLogLevel'>"; }
     };
 
     struct Eval : public Callable
     {
+    public:
         Token::Value call(Interpreter &interpreter, const std::vector<Token::Value> &arguments) override
         {
             using Logging::LogLevel;
@@ -106,13 +107,14 @@ namespace
             return interpreter.last_value;
         }
 
-        size_t arity() const override { return 1; }
+        [[nodiscard]] size_t arity() const override { return 1; }
 
-        std::string to_string() const override { return "<Native fn 'eval'>"; }
+        [[nodiscard]] std::string to_string() const override { return "<Native fn 'eval'>"; }
     };
 
     struct IncludeStr : public Callable
     {
+    public:
         Token::Value call(Interpreter &interpreter, const std::vector<Token::Value> &arguments) override
         {
             using Logging::LogLevel;
@@ -142,13 +144,14 @@ namespace
             return buffer.str();
         }
 
-        size_t arity() const override { return 1; }
+        [[nodiscard]] size_t arity() const override { return 1; }
 
-        std::string to_string() const override { return "<Native fn 'includeStr'>"; }
+        [[nodiscard]] std::string to_string() const override { return "<Native fn 'includeStr'>"; }
     };
 
     struct Assert : public Callable
     {
+    public:
         Token::Value call(Interpreter &, const std::vector<Token::Value> &arguments) override
         {
             using Logging::LogLevel;
@@ -173,11 +176,11 @@ namespace
             return NullType{};
         }
 
-        size_t arity() const override { return 2; }
+        [[nodiscard]] size_t arity() const override { return 2; }
 
-        std::string to_string() const override { return "<Native fn 'assert'>"; }
+        [[nodiscard]] std::string to_string() const override { return "<Native fn 'assert'>"; }
     };
-}
+} // namespace
 
 namespace Buildin
 {
@@ -189,7 +192,7 @@ namespace Buildin
         auto clock_closure =
             [](Interpreter &)
         {
-            return static_cast<double>(duration_cast<seconds>(system_clock::now().time_since_epoch())
+            return static_cast<double>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch())
                                            .count());
         };
         auto clock_buildin = std::make_shared<SimpleBuildin<decltype(clock_closure)>>("clock", std::move(clock_closure));
@@ -221,4 +224,4 @@ namespace Buildin
             {Type::FUN, "eval", std::make_shared<Eval>(), 0},
         };
     }
-}
+} // namespace Buildin

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <string>
+#include <cstring>
 #include <iostream>
-#include <string.h>
+#include <string>
 
 namespace Logging
 {

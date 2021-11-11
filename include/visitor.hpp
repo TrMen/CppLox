@@ -23,7 +23,13 @@ struct Visitor;
 template <typename T>
 struct Visitor<T>
 {
+  Visitor() = default;
   virtual ~Visitor() = default;
+  Visitor(const Visitor &) = default;
+  Visitor(Visitor &&) noexcept = default;
+  Visitor &operator=(Visitor &&) noexcept = default;
+  Visitor &operator=(const Visitor &) = default;
+
   virtual void visit(T &visitable) = 0;
 };
 
@@ -37,7 +43,13 @@ struct Visitor<T, Types...> : public Visitor<Types...>
 template <typename... Types>
 struct Visitable
 {
+  Visitable() = default;
   virtual ~Visitable() = default;
+  Visitable(const Visitable &) = default;
+  Visitable(Visitable &&) = default;
+  Visitable &operator=(Visitable &&) = default;
+  Visitable &operator=(const Visitable &) = default;
+
   virtual void accept(Visitor<Types...> &visitor) = 0;
 };
 

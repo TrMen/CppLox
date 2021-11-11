@@ -1,7 +1,7 @@
 #include "environment.hpp"
 
-#include <sstream>
 #include <cassert>
+#include <sstream>
 
 #include "error.hpp"
 #include "logging.hpp"
@@ -14,7 +14,7 @@ void Environment::define(Token variable)
   {
     throw RuntimeError(variable, "Identifier '" + variable.lexeme + "' is already defined in this scope.");
   }
-  variables.emplace(std::move(variable.lexeme), std::move(variable.value));
+  variables.emplace(variable.lexeme, variable.value);
 }
 
 void Environment::define(std::string identifier, Token::Value value)
@@ -47,12 +47,12 @@ namespace
     while (depth > 0)
     {
       env = env->enclosing.get();
-      assert(env != nullptr);
+      assert(env != nullptr && "Environment is nullptr in Environment::ancestor()");
       --depth;
     }
     return env;
   }
-}
+} // namespace
 
 const Token::Value &Environment::get_at(size_t depth, const std::string &name) const
 {
@@ -79,7 +79,7 @@ void Environment::assign_at(size_t depth, const std::string &name, Token::Value 
 {
   LOG_DEBUG("Assign at: ", *ancestor(this, depth));
   // const-cast here is fine since we know the original object was non-const. Reduces code duplication
-  const_cast<Environment *>(ancestor(this, depth))->variables.at(name) = std::move(value);
+  const_cast<Environment *>(ancestor(this, depth))->variables.at(name) = std::move(value); // NOLINT: ppcoreguidelines-pro-type-const-cast
 }
 
 std::string Environment::to_string() const

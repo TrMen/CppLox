@@ -1,20 +1,19 @@
 #include "interpreter.hpp"
 
-#include <filesystem>
 #include <cassert>
+#include <filesystem>
 
-#include "callable.hpp"
-#include "function.hpp"
 #include "buildin.hpp"
-#include "logging.hpp"
+#include "callable.hpp"
 #include "class.hpp"
+#include "function.hpp"
 #include "instance.hpp"
+#include "logging.hpp"
 
 using Type = Token::TokenType;
 
 Interpreter::Interpreter(std::ostream &_os, std::shared_ptr<ErrorHandler> _err_handler)
-    : out_stream(_os), globals(std::make_shared<Environment>()), environment(globals), err_handler(std::move(_err_handler)),
-      interpreter_path{std::filesystem::current_path()}
+    : out_stream(_os), globals(std::make_shared<Environment>()), environment(globals), err_handler(std::move(_err_handler)), interpreter_path{std::filesystem::current_path()}
 {
   for (const auto &buildin : Buildin::get_buildins())
   {
@@ -42,8 +41,6 @@ Interpreter::CheckedRecursiveDepth::~CheckedRecursiveDepth()
 
 void Interpreter::interpret(std::vector<stmt> &statements)
 {
-  ast = &statements;
-
   try
   {
     for (stmt &statement : statements)
@@ -139,13 +136,13 @@ namespace
   template <typename value_type, typename... Operands>
   void assert_operand_types(const Token &op, const Operands &...operands)
   {
-    if (!check_operand_types<double>(operands...))
+    if (not check_operand_types<value_type>(operands...))
     {
-      if (std::is_same_v<value_type, double>)
+      if constexpr (std::is_same_v<value_type, double>)
       {
         throw RuntimeError(op, "Operands must be numbers");
       }
-      if (std::is_same_v<value_type, std::string>)
+      if constexpr (std::is_same_v<value_type, std::string>)
       {
         throw RuntimeError(op, "Operands must be strings");
       }
@@ -163,7 +160,7 @@ namespace
     }
   }
 
-}
+} // namespace
 
 //-------------Statement Visitor Methods------------------------------------
 
@@ -214,8 +211,8 @@ Class::ClassFunctions Interpreter::split_class_functions(const std::vector<Funct
     }
     default:
     {
-      LOG_ERROR("Invalid kind: ", kind);
-      assert(false);
+      LOG_ERROR("Invalid token kind: ", kind);
+      std::abort();
     }
     }
   }
@@ -232,7 +229,7 @@ void Interpreter::visit(ClassStmt &node)
   {
     superclass = get_callable_as<Class>(get_evaluated(*superclass_expr));
     if (superclass == nullptr)
-      throw new RuntimeError(superclass_expr->child<0>(), "Superclass must be a class.");
+      throw RuntimeError(superclass_expr->child<0>(), "Superclass must be a class.");
 
     environment = std::make_shared<Environment>(environment);
     environment->define("super", superclass); // Unlike 'this', super is defined once per class
@@ -262,8 +259,8 @@ void Interpreter::visit(Super &node)
       last_value = std::move(unbound);
       return;
     }
-    else
-      throw RuntimeError(node.child<1>(), "Undefined unbound method. You can only access unbound super methods in an unbound submethod.");
+
+    throw RuntimeError(node.child<1>(), "Undefined unbound method. You can only access unbound super methods in an unbound submethod.");
   }
 
   // 'this' needs to still be bound to the original object, even though we use a superclass method
@@ -286,7 +283,7 @@ void Interpreter::visit(Super &node)
   {
     throw RuntimeError(node.child<1>(),
                        "Undefined method or unbound function '" + node.child<1>().lexeme +
-                           "' on class '" + superclass->name + '.');
+                           "' on class '" + superclass->name() + '.');
   }
 }
 
@@ -346,7 +343,7 @@ void Interpreter::visit(MalformedStmt &node)
 
   if (is_critical)
   {
-    throw RuntimeError(Token(Type::_EOF, "MALFORMED", "MALFORMED", 0),
+    throw RuntimeError(Token(Type::EOF_, "MALFORMED", "MALFORMED", 0),
                        "Malformed statement node in AST. Syntax was not valid. Lexer "
                        "message:\t" +
                            lexer_message);
@@ -464,7 +461,7 @@ void Interpreter::visit(Logical &node)
       last_value = lhs;
     return;
   }
-  else if (!is_truthy(lhs))
+  if (!is_truthy(lhs))
   {
     last_value = lhs;
     return;
@@ -485,10 +482,8 @@ const Token::Value &Interpreter::lookup_variable(const Token &name, const Expr &
   {
     return environment->get_at(*node.depth, name.lexeme);
   }
-  else
-  {
-    return globals->get(name);
-  }
+
+  return globals->get(name);
 }
 
 void Interpreter::visit(Empty &)
@@ -635,7 +630,7 @@ void Interpreter::visit(Malformed &node)
 
   if (is_critical)
   {
-    throw RuntimeError(Token(Type::_EOF, "MALFORMED", "MALFORMED", 0),
+    throw RuntimeError(Token(Type::EOF_, "MALFORMED", "MALFORMED", 0),
                        "Malformed expression node in AST. Syntax was not valid. Lexer message:\t" + lexer_message);
   }
   // Non-critical syntax errors just leave the last value untouched.

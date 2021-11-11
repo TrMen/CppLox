@@ -9,12 +9,17 @@
 #include "expr.hpp"
 #include "stmt.hpp"
 
-class Parser;
+struct Parser;
 
 struct Interpreter : public ExprVisitor, public StmtVisitor
 {
   explicit Interpreter(std::ostream &_os, std::shared_ptr<ErrorHandler> _err_handler);
 
+  Interpreter(const Interpreter &) = default;
+  Interpreter(Interpreter &&) noexcept = default;
+  // TODO(Me): Why are these implicitly deleted? I don't see which base class does it.
+  Interpreter &operator=(const Interpreter &) = default;
+  Interpreter &operator=(Interpreter &&) noexcept = default;
   ~Interpreter() override = default;
 
   /// Interprets a list of statements, representing a program
@@ -31,8 +36,9 @@ struct Interpreter : public ExprVisitor, public StmtVisitor
   std::shared_ptr<Environment> environment;
 
   /// Used to unwind the interpreter execution when functions return
-  struct Return
+  struct Return : std::exception
   {
+    explicit Return(Token::Value _val) : val(std::move(_val)) {}
     Token::Value val;
   };
 
@@ -40,16 +46,17 @@ struct Interpreter : public ExprVisitor, public StmtVisitor
 
   Token::Value last_value;
 
-  std::vector<stmt> *ast;
-
   std::string interpreter_path;
 
   struct CheckedRecursiveDepth
   {
     CheckedRecursiveDepth(Interpreter &, const Token &location);
     ~CheckedRecursiveDepth();
+
     CheckedRecursiveDepth(const CheckedRecursiveDepth &) = delete;
     CheckedRecursiveDepth operator=(const CheckedRecursiveDepth &) = delete;
+    CheckedRecursiveDepth(CheckedRecursiveDepth &&) = delete;
+    CheckedRecursiveDepth operator=(CheckedRecursiveDepth &&) = delete;
 
     Interpreter &interpreter;
 
@@ -66,7 +73,7 @@ private:
   Token::Value get_evaluated(const expr &node);
   Token::Value get_evaluated(Expr &node);
 
-  Class::ClassFunctions split_class_functions(const std::vector<FunctionStmtPtr> &class_functions) const;
+  [[nodiscard]] Class::ClassFunctions split_class_functions(const std::vector<FunctionStmtPtr> &class_functions) const;
 
-  const Token::Value &lookup_variable(const Token &name, const Expr &) const;
+  [[nodiscard]] const Token::Value &lookup_variable(const Token &name, const Expr &) const;
 };

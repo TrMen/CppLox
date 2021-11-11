@@ -16,21 +16,29 @@ Function::Function(const std::variant<const FunctionStmt *, const Lambda *> &_de
 const std::vector<Token> &Function::parameters() const
 {
   if (const auto *decl = std::get_if<FuncPtr>(&declaration))
+  {
     return (*decl)->child<1>();
-  else if (const auto *decl = std::get_if<LambdaPtr>(&declaration))
+  }
+  if (const auto *decl = std::get_if<LambdaPtr>(&declaration))
+  {
     return (*decl)->child<0>();
+  }
 
-  assert(false);
+  assert(false && "Unhandled function type n Function::parameters()");
 }
 
 const std::vector<stmt> &Function::body() const
 {
   if (const auto *decl = std::get_if<FuncPtr>(&declaration))
+  {
     return (*decl)->child<2>();
-  else if (const auto *decl = std::get_if<LambdaPtr>(&declaration))
+  }
+  if (const auto *decl = std::get_if<LambdaPtr>(&declaration))
+  {
     return (*decl)->child<1>();
+  }
 
-  assert(false);
+  assert(false && "Unhandled function type in Function::body()");
 }
 
 Token::Value Function::call(Interpreter &interpreter, const std::vector<Token::Value> &arguments)
@@ -50,7 +58,7 @@ Token::Value Function::call(Interpreter &interpreter, const std::vector<Token::V
 
   try
   {
-    interpreter.execute_block(body(), environment);
+    interpreter.execute_block(body(), std::move(environment));
   }
   catch (const Interpreter::Return &returned) // Early return
   {

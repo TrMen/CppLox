@@ -1,13 +1,13 @@
 #pragma once
 
-#include "token.hpp"
 #include <memory>
 #include <unordered_map>
 
+#include "token.hpp"
+
 ///Store variable bindings
-class Environment
+struct Environment
 {
-public:
   explicit Environment(std::shared_ptr<Environment> _enclosing = nullptr);
 
   /// Define a new variable (or function) binding with name and value extracted from the Token.
@@ -18,12 +18,12 @@ public:
 
   /// Get a variable value by the name of the supplied token.
   /// @throws RuntimeError on unknown variable access.
-  const Token::Value &get(const Token &token) const;
+  [[nodiscard]] const Token::Value &get(const Token &token) const;
 
   /// Get a variable value by the name.
   /// This assumes the variable is found in the index'th nested environment
   /// Unlike for get(), this variable must be present
-  const Token::Value &get_at(size_t depth, const std::string &name) const;
+  [[nodiscard]] const Token::Value &get_at(size_t depth, const std::string &name) const;
 
   /// Assign a new value to an existing variable.
   /// @throws RuntimeError on unknown variable access.
@@ -36,11 +36,11 @@ public:
 
   std::shared_ptr<Environment> enclosing = nullptr;
 
-  std::string to_string() const;
+  [[nodiscard]] std::string to_string() const;
 
-  std::string to_string_recursive() const;
+  [[nodiscard]] std::string to_string_recursive() const;
 
-  size_t depth() const;
+  [[nodiscard]] size_t depth() const;
 
   std::unordered_map<std::string, Token::Value> variables;
 };

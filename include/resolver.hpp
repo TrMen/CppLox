@@ -4,10 +4,9 @@
 
 #include "interpreter.hpp"
 
-class Resolver : public ExprVisitor, public StmtVisitor
+struct Resolver : public ExprVisitor, public StmtVisitor
 {
-public:
-    Resolver(Interpreter &);
+    explicit Resolver(Interpreter &);
 
     void resolve(const std::vector<stmt> &);
     void resolve(const stmt &);

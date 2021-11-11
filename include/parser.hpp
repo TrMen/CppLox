@@ -8,16 +8,15 @@
 
 /// Parse an collection of Token to return an AST representation of it's syntax.
 /// This is a recursive descent parser
-class Parser
+struct Parser
 {
-public:
   explicit Parser(std::vector<Token> _tokens,
                   std::shared_ptr<ErrorHandler> _err_handler =
                       std::make_shared<CerrHandler>());
 
   bool match(const std::vector<Token::TokenType> &matched_values);
   bool match(Token::TokenType matched_values);
-  const Token &previous() const;
+  [[nodiscard]] const Token &previous() const;
 
   std::vector<stmt> parse();
 
@@ -65,7 +64,7 @@ private:
 
   struct ParseError : std::exception
   {
-    const char *what() const noexcept override;
+    [[nodiscard]] const char *what() const noexcept override;
     explicit ParseError(const char *_message) : message(_message) {}
     explicit ParseError(const std::string &_message)
         : message(_message.c_str()) {}
@@ -80,9 +79,9 @@ private:
   /// This means until the next statement begins
   void synchronize();
 
-  const Token &peek() const;
-  bool is_at_end() const;
-  bool check(Token::TokenType type) const;
+  [[nodiscard]] const Token &peek() const;
+  [[nodiscard]] bool is_at_end() const;
+  [[nodiscard]] bool check(Token::TokenType type) const;
   const Token &advance();
 
   const std::vector<Token> tokens;

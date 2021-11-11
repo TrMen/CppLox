@@ -9,7 +9,7 @@ RuntimeError::RuntimeError(Token _token, const std::string &msg)
 
 RuntimeError::RuntimeError(Token::Value value, const std::string &msg, unsigned int line)
     : std::runtime_error("Runtime error at '" + stringify(value) + ": " + msg),
-      token(Token{Token::TokenType::NIL, "RUNTIME_ERROR", value, line}) {}
+      token(Token{Token::TokenType::NIL, "RUNTIME_ERROR", std::move(value), line}) {}
 
 RuntimeError::RuntimeError(const std::string &msg)
     : std::runtime_error("Runtime error: " + msg),
@@ -21,15 +21,15 @@ CompiletimeError::CompiletimeError(Token _token, const std::string &msg)
 
 CompiletimeError::CompiletimeError(Token::Value value, const std::string &msg, unsigned int line)
     : std::runtime_error("Compile-time error at '" + stringify(value) + ": " + msg),
-      token(Token{Token::TokenType::NIL, "COMPILETIME_ERROR", value, line}) {}
+      token(Token{Token::TokenType::NIL, "COMPILETIME_ERROR", std::move(value), line}) {}
 
 //--------------------Error-handler---------------------------------------
 ErrorHandler::~ErrorHandler() = default;
 
 void ErrorHandler::reset_error() { had_error = false; }
-bool ErrorHandler::has_error() { return had_error; }
+bool ErrorHandler::has_error() const { return had_error; }
 
-bool ErrorHandler::has_runtime_error() { return had_runtime_error; }
+bool ErrorHandler::has_runtime_error() const { return had_runtime_error; }
 
 void ErrorHandler::error(unsigned int line, std::string_view message)
 {
@@ -39,14 +39,8 @@ void ErrorHandler::error(unsigned int line, std::string_view message)
 
 void ErrorHandler::error(const Token &token, std::string_view message)
 {
-  if (token.type == Token::TokenType::_EOF)
-  {
-    report(token.line, "", message, true);
-  }
-  else
-  {
-    report(token.line, "", message, true);
-  }
+  report(token.line, "", message, true);
+
   had_error = true;
 }
 

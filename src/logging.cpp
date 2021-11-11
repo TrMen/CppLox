@@ -18,7 +18,7 @@ namespace Logging
         case LogLevel::debug:
             return os << "Debug";
         }
-        assert(false);
+        std::abort();
     }
 
     void newline(LogLevel level)

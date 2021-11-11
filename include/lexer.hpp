@@ -1,14 +1,14 @@
 #pragma once
 
-#include "error.hpp"
-#include "token.hpp"
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
-class Lexer
+#include "error.hpp"
+#include "token.hpp"
+
+struct Lexer
 {
-public:
   using Type = Token::TokenType;
 
   explicit Lexer(std::string _source,
@@ -22,7 +22,7 @@ public:
   // clang-format on
 
 private:
-  bool is_at_end();
+  [[nodiscard]] bool is_at_end() const;
   char advance();
   void add_token(Type t, Token::Value value = NullType{});
   void scan_token();
@@ -30,7 +30,7 @@ private:
   char peek();
   void string();
   void number();
-  char peek_next();
+  [[nodiscard]] char peek_next() const;
   void identifier();
   void slash_or_comment();
 

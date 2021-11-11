@@ -30,7 +30,6 @@ class DiameterCircle < Circle {
 }
 
 
-
 print Circle(4).area; // Prints roughly "50.2655"
 
 print DiameterCircle(4).area; // Print roughly "12.5663"

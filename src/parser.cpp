@@ -8,6 +8,26 @@
 
 using Type = Token::TokenType;
 
+namespace
+{
+  constexpr size_t MAX_PARAM_COUNT = 255;
+
+  // dynamic_ptr_cast for unique_ptr. Transfers ownership of param to the reuturned ptr if it can be converted.
+  // Otherwise, does not transfer ownership and returns nullptr
+  template <typename To>
+  std::unique_ptr<To> owned_as(expr &expression)
+  {
+    // Needs to be done in two stages. Otherwise, memory leaks if the conversion of a unique_ptr fails
+    if (auto *cast = dynamic_cast<To *>(expression.get()))
+    {
+      std::unique_ptr<To> result(cast);        // Dangerous, takes ownership of an already-owned ptr
+      static_cast<void>(expression.release()); // This makes it ok
+      return result;
+    }
+    return nullptr;
+  }
+} // namespace
+
 Parser::Parser(std::vector<Token> _tokens,
                std::shared_ptr<ErrorHandler> _err_handler)
     : err_handler(std::move(_err_handler)), tokens(std::move(_tokens)) {}
@@ -16,7 +36,7 @@ const char *Parser::ParseError::what() const noexcept { return message; }
 
 //---------------Primitive parser function implementations-----------------
 
-bool Parser::is_at_end() const { return peek().type == Type::_EOF; }
+bool Parser::is_at_end() const { return peek().type == Type::EOF_; }
 
 const Token &Parser::peek() const { return tokens[current]; }
 
@@ -42,7 +62,7 @@ const Token &Parser::advance()
 
 bool Parser::match(const std::vector<Type> &matched_types)
 {
-  return std::any_of(matched_types.cbegin(), matched_types.cend(), [this](auto &&type)
+  return std::any_of(matched_types.begin(), matched_types.end(), [this](const auto &type)
                      { return this->match(type); });
 }
 
@@ -130,7 +150,7 @@ FunctionStmtPtr Parser::function_declaration(FunctionKind kind)
   consume(Type::RIGHT_PAREN, "Expect ')' after parameter list.");
   consume(Type::LEFT_BRACE, "Expect '{' before " + str(kind) + " body.");
 
-  return std::make_unique<FunctionStmt>(std::move(name), std::move(params), block(), std::move(kind));
+  return std::make_unique<FunctionStmt>(std::move(name), std::move(params), block(), kind);
 }
 
 stmt Parser::class_declaration()
@@ -164,9 +184,9 @@ std::vector<Token> Parser::parameters()
   std::vector<Token> params;
   do
   {
-    if (params.size() >= 255)
+    if (params.size() > MAX_PARAM_COUNT)
     {
-      error(peek(), "Cannot define more than 255 parameters.");
+      throw error(peek(), "Cannot define more than 255 parameters.");
     }
     params.push_back(consume(Type::IDENTIFIER, "Expect parameter name."));
   } while (match(Type::COMMA));
@@ -298,8 +318,10 @@ stmt Parser::return_statement()
   Token return_keyword = previous(); // Keep for error-reporting
   expr body = new_expr<Empty>();     // Returned value is optional.
 
-  if (!check(Type::SEMICOLON))
+  if (not check(Type::SEMICOLON))
+  {
     body = expression();
+  }
 
   consume(Type::SEMICOLON, "Expect ';' after 'return' statement's expression");
 
@@ -344,24 +366,6 @@ expr Parser::expression()
 
 expr Parser::comma_expression() { return assignment(); }
 
-namespace
-{
-  // dynamic_ptr_cast for unique_ptr. Transfers ownership of param to the reuturned ptr if it can be converted.
-  // Otherwise, does not transfer ownership and returns nullptr
-  template <typename To>
-  std::unique_ptr<To> owned_as(expr &expression)
-  {
-    // Needs to be done in two stages. Otherwise, memory leaks if the conversion of a unique_ptr fails
-    if (auto cast = dynamic_cast<To *>(expression.get()))
-    {
-      std::unique_ptr<To> result(cast); // Dangerous, takes ownership of an already-owned ptr
-      expression.release();             // This makes it ok
-      return result;
-    }
-    return nullptr;
-  }
-}
-
 expr Parser::assignment()
 {
   expr x_value = ternary_conditional();
@@ -375,12 +379,12 @@ expr Parser::assignment()
     {
       return new_expr<Assign>(std::move(variable->child<0>()), std::move(value));
     }
-    else if (auto get = owned_as<Get>(x_value))
+    if (auto get = owned_as<Get>(x_value))
     {
       return new_expr<Set>(std::move(get->child<0>()), std::move(get->child<1>()), std::move(value));
     }
 
-    error(equal, "Invalid assignment operator"); // Report but don't throw
+    static_cast<void>(error(equal, "Invalid assignment operator")); // NOLINT: bugprone-throw-keyword-missing
   }
   return x_value;
 }
@@ -440,7 +444,7 @@ expr Parser::addition()
       this);
 }
 
-static std::vector<Type> multiplication_types{Type::STAR, Type::SLASH};
+static const std::vector<Type> multiplication_types{Type::STAR, Type::SLASH};
 expr Parser::multiplication()
 {
   return left_associative_binary_production<
@@ -488,9 +492,9 @@ expr Parser::finish_call(expr callee)
   {
     do
     {
-      if (arguments.size() >= 255)
+      if (arguments.size() >= MAX_PARAM_COUNT)
       {
-        error(peek(), "Cannot have more than 255 function arguments");
+        throw error(peek(), "Cannot have more than 255 function arguments");
       }
       arguments.push_back(comma_expression());
     } while (match(Type::COMMA));
@@ -554,14 +558,12 @@ expr Parser::primary()
     {
       return new_expr<Lambda>(std::move(params), block());
     }
-    else
-    {                                    // Single-expression lambda implicitly returns its value
-      Token return_keyword = previous(); // Keep for error-reporting. Copy required here
-      stmt implicit_return = std::make_unique<ReturnStmt>(std::move(return_keyword), expression());
-      std::vector<stmt> block; // Initialization in constructor not possible because of unique_ptr
-      block.emplace_back(std::move(implicit_return));
-      return new_expr<Lambda>(std::move(params), std::move(block));
-    }
+
+    Token return_keyword = previous(); // Keep for error-reporting. Copy required here
+    stmt implicit_return = std::make_unique<ReturnStmt>(std::move(return_keyword), expression());
+    std::vector<stmt> block; // Initialization in constructor not possible because of unique_ptr
+    block.emplace_back(std::move(implicit_return));
+    return new_expr<Lambda>(std::move(params), std::move(block));
   }
 
   throw error(peek(), "Expect expression.");

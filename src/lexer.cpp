@@ -18,7 +18,7 @@ Lexer::Lexer(std::string _source, std::shared_ptr<ErrorHandler> _err_handler)
   tokens.reserve(source.size() / 3);
 }
 
-bool Lexer::is_at_end() { return current >= source.size(); }
+bool Lexer::is_at_end() const { return current >= source.size(); }
 
 char Lexer::advance() { return source[current++]; }
 
@@ -175,7 +175,7 @@ void Lexer::number()
   add_token(Type::NUMBER, std::stod(source.substr(start, current - start)));
 }
 
-char Lexer::peek_next()
+char Lexer::peek_next() const
 {
   if (current + 1 >= source.size())
   {
@@ -226,7 +226,7 @@ void Lexer::add_token(Type type, Token::Value value)
     report_last_syntax_error();
   }
   std::string text = source.substr(start, current - start);
-  tokens.emplace_back(type, text, value, line);
+  tokens.emplace_back(type, std::move(text), std::move(value), line);
 }
 
 bool Lexer::expect(char expected)
@@ -252,7 +252,7 @@ std::vector<Token> Lexer::lex()
     report_last_syntax_error();
   }
 
-  tokens.emplace_back(Type::_EOF, "", NullType(), line);
+  tokens.emplace_back(Type::EOF_, "", NullType(), line);
   return tokens;
 }
 

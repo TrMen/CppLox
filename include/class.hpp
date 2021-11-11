@@ -2,9 +2,8 @@
 
 #include "function.hpp"
 
-class Class : public Callable, public std::enable_shared_from_this<Class>
+struct Class : public Callable, public std::enable_shared_from_this<Class>
 {
-public:
     using FunctionMap = std::unordered_map<std::string, FunctionPtr>;
     /// (methods, unbounds, getters)
     using ClassFunctions = std::tuple<Class::FunctionMap, Class::FunctionMap, Class::FunctionMap>;
@@ -13,17 +12,17 @@ public:
 
     Token::Value call(Interpreter &, const std::vector<Token::Value> &arguments) override;
 
-    std::string to_string() const override;
+    [[nodiscard]] std::string to_string() const override;
 
-    size_t arity() const override;
+    [[nodiscard]] size_t arity() const override;
 
-    const FunctionPtr &get_method(const std::string &name) const;
+    [[nodiscard]] const FunctionPtr &get_method(const std::string &name) const;
 
-    const FunctionPtr &get_unbound(const std::string &name) const;
+    [[nodiscard]] const FunctionPtr &get_unbound(const std::string &name) const;
 
-    const FunctionPtr &get_getter(const std::string &name) const;
+    [[nodiscard]] const FunctionPtr &get_getter(const std::string &name) const;
 
-    const std::string name;
+    [[nodiscard]] const std::string &name() const;
 
 private:
     ClassPtr superclass;
@@ -31,6 +30,8 @@ private:
     FunctionMap methods;
     FunctionMap unbounds;
     FunctionMap getters;
+
+    const std::string m_name;
 
     const FunctionPtr nullRef = nullptr;
 };
