@@ -6,64 +6,58 @@
 using FuncPtr = const FunctionStmt *;
 using LambdaPtr = const Lambda *;
 
-Function::Function(const std::variant<const FunctionStmt *, const Lambda *> &_declaration,
-                   std::shared_ptr<Environment> _closure, FunctionKind _kind)
-    : declaration(_declaration),
-      closure(std::move(_closure)), kind(_kind)
-{
-}
+Function::Function(
+    const std::variant<const FunctionStmt *, const Lambda *> &_declaration,
+    std::shared_ptr<Environment> _closure, FunctionKind _kind)
+    : declaration(_declaration), closure(std::move(_closure)), kind(_kind) {}
 
-const std::vector<Token> &Function::parameters() const
-{
-  if (const auto *decl = std::get_if<FuncPtr>(&declaration))
-  {
+const std::vector<Token> &Function::parameters() const {
+  if (const auto *decl = std::get_if<FuncPtr>(&declaration)) {
     return (*decl)->child<1>();
   }
-  if (const auto *decl = std::get_if<LambdaPtr>(&declaration))
-  {
+  if (const auto *decl = std::get_if<LambdaPtr>(&declaration)) {
     return (*decl)->child<0>();
   }
 
   assert(false && "Unhandled function type n Function::parameters()");
 }
 
-const std::vector<stmt> &Function::body() const
-{
-  if (const auto *decl = std::get_if<FuncPtr>(&declaration))
-  {
+const std::vector<stmt> &Function::body() const {
+  if (const auto *decl = std::get_if<FuncPtr>(&declaration)) {
     return (*decl)->child<2>();
   }
-  if (const auto *decl = std::get_if<LambdaPtr>(&declaration))
-  {
+  if (const auto *decl = std::get_if<LambdaPtr>(&declaration)) {
     return (*decl)->child<1>();
   }
 
   assert(false && "Unhandled function type in Function::body()");
 }
 
-Token::Value Function::call(Interpreter &interpreter, const std::vector<Token::Value> &arguments)
-{
+Token::Value Function::call(Interpreter &interpreter,
+                            const std::vector<Token::Value> &arguments) {
   auto environment = std::make_shared<Environment>(closure);
 
-  LOG_DEBUG("Calling func with closure: ", *environment, " enclosed by ", *environment->enclosing);
+  LOG_DEBUG("Calling func with closure: ", *environment, " enclosed by ",
+            *environment->enclosing);
 
   const auto &params = parameters();
 
-  for (size_t i = 0; i < params.size(); ++i)
-  {
+  for (size_t i = 0; i < params.size(); ++i) {
     auto parameter = params[i];
     parameter.value = arguments[i];
     environment->define(parameter);
   }
 
-  try
-  {
+  try {
     interpreter.execute_block(body(), std::move(environment));
-  }
-  catch (const Interpreter::Return &returned) // Early return
+  } catch (const Interpreter::Return &returned) // Early return
   {
-    if (kind == FunctionKind::CONSTRUCTOR) // Allow empty returns in constructors that implicitly return 'this'
-      return closure->get_at(0, "this");   // Non-empty returns in constructors are caught by resolver
+    if (kind ==
+        FunctionKind::CONSTRUCTOR) // Allow empty returns in constructors that
+                                   // implicitly return 'this'
+      return closure->get_at(
+          0,
+          "this"); // Non-empty returns in constructors are caught by resolver
     return returned.val;
   }
 
@@ -75,12 +69,11 @@ Token::Value Function::call(Interpreter &interpreter, const std::vector<Token::V
 
 size_t Function::arity() const { return parameters().size(); }
 
-std::string Function::to_string() const
-{
-  switch (kind)
-  {
+std::string Function::to_string() const {
+  switch (kind) {
   case FunctionKind::FUNCTION:
-    return "<User fn " + std::get<FuncPtr>(declaration)->child<0>().lexeme + ">";
+    return "<User fn " + std::get<FuncPtr>(declaration)->child<0>().lexeme +
+           ">";
   case FunctionKind::LAMDBDA:
     return "<User lambda>";
   case FunctionKind::CONSTRUCTOR:
@@ -96,8 +89,7 @@ std::string Function::to_string() const
   return "";
 }
 
-FunctionPtr Function::bind(InstancePtr instance)
-{
+FunctionPtr Function::bind(InstancePtr instance) {
   auto env = std::make_shared<Environment>(closure);
   env->define("this", std::move(instance));
   return std::make_shared<Function>(declaration, std::move(env), kind);

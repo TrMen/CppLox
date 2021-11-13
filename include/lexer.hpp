@@ -7,8 +7,7 @@
 #include "error.hpp"
 #include "token.hpp"
 
-struct Lexer
-{
+struct Lexer {
   using Type = Token::TokenType;
 
   explicit Lexer(std::string _source,

@@ -11,13 +11,14 @@
 
 struct Parser;
 
-struct Interpreter : public ExprVisitor, public StmtVisitor
-{
-  explicit Interpreter(std::ostream &_os, std::shared_ptr<ErrorHandler> _err_handler);
+struct Interpreter : public ExprVisitor, public StmtVisitor {
+  explicit Interpreter(std::ostream &_os,
+                       std::shared_ptr<ErrorHandler> _err_handler);
 
   Interpreter(const Interpreter &) = default;
   Interpreter(Interpreter &&) noexcept = default;
-  // TODO(Me): Why are these implicitly deleted? I don't see which base class does it.
+  // TODO(Me): Why are these implicitly deleted? I don't see which base class
+  // does it.
   Interpreter &operator=(const Interpreter &) = default;
   Interpreter &operator=(Interpreter &&) noexcept = default;
   ~Interpreter() override = default;
@@ -27,7 +28,8 @@ struct Interpreter : public ExprVisitor, public StmtVisitor
 
   void execute(const stmt &statement);
 
-  void execute_block(const std::vector<stmt> &body, std::shared_ptr<Environment> enclosing_env);
+  void execute_block(const std::vector<stmt> &body,
+                     std::shared_ptr<Environment> enclosing_env);
 
   std::ostream &out_stream;
 
@@ -36,8 +38,7 @@ struct Interpreter : public ExprVisitor, public StmtVisitor
   std::shared_ptr<Environment> environment;
 
   /// Used to unwind the interpreter execution when functions return
-  struct Return : std::exception
-  {
+  struct Return : std::exception {
     explicit Return(Token::Value _val) : val(std::move(_val)) {}
     Token::Value val;
   };
@@ -48,8 +49,7 @@ struct Interpreter : public ExprVisitor, public StmtVisitor
 
   std::string interpreter_path;
 
-  struct CheckedRecursiveDepth
-  {
+  struct CheckedRecursiveDepth {
     CheckedRecursiveDepth(Interpreter &, const Token &location);
     ~CheckedRecursiveDepth();
 
@@ -73,7 +73,9 @@ private:
   Token::Value get_evaluated(const expr &node);
   Token::Value get_evaluated(Expr &node);
 
-  [[nodiscard]] Class::ClassFunctions split_class_functions(const std::vector<FunctionStmtPtr> &class_functions) const;
+  [[nodiscard]] Class::ClassFunctions split_class_functions(
+      const std::vector<FunctionStmtPtr> &class_functions) const;
 
-  [[nodiscard]] const Token::Value &lookup_variable(const Token &name, const Expr &) const;
+  [[nodiscard]] const Token::Value &lookup_variable(const Token &name,
+                                                    const Expr &) const;
 };

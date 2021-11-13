@@ -591,16 +591,17 @@ void Parser::synchronize()
 
   while (!is_at_end() && previous().type != Type::SEMICOLON)
   {
+    using enum Type;
     switch (peek().type)
     {
-    case Type::CLASS:
-    case Type::FUN:
-    case Type::VAR:
-    case Type::FOR:
-    case Type::IF:
-    case Type::WHILE:
-    case Type::PRINT:
-    case Type::RETURN:
+    case CLASS:
+    case FUN:
+    case VAR:
+    case FOR:
+    case IF:
+    case WHILE:
+    case PRINT:
+    case RETURN:
       return;
     default:
       advance();

@@ -3,8 +3,7 @@
 #include "visitor.hpp"
 #include <vector>
 
-struct Statement
-{
+struct Statement {
   Statement() noexcept = default;
   virtual ~Statement();
   Statement(const Statement &) = default;
@@ -16,11 +15,9 @@ struct Statement
 };
 using stmt = std::unique_ptr<Statement>;
 
-template <int id, typename... Types>
-struct StmtProduction;
+template <int id, typename... Types> struct StmtProduction;
 
-enum class FunctionKind
-{
+enum class FunctionKind {
   FUNCTION,
   METHOD,
   UNBOUND,
@@ -48,41 +45,36 @@ using FunctionStmtPtr = std::unique_ptr<FunctionStmt>;
 using ClassStmt = StmtProduction<10, Token, std::vector<FunctionStmtPtr>, VarPtr>;                         // name methods superclass
 // clang-format on
 
-#define STMT_TYPES PrintStmt, ExprStmt, VarStmt, MalformedStmt, BlockStmt, IfStmt, \
-                   EmptyStmt, WhileStmt, FunctionStmt, ReturnStmt, ClassStmt
+#define STMT_TYPES                                                             \
+  PrintStmt, ExprStmt, VarStmt, MalformedStmt, BlockStmt, IfStmt, EmptyStmt,   \
+      WhileStmt, FunctionStmt, ReturnStmt, ClassStmt
 
 template <int id, typename... Types>
-using StmtProductionVisitableImpl = VisitableImpl<StmtProduction<id, Types...>, STMT_TYPES>;
+using StmtProductionVisitableImpl =
+    VisitableImpl<StmtProduction<id, Types...>, STMT_TYPES>;
 using StmtVisitor = Visitor<STMT_TYPES>;
 using StmtVisitableBase = Visitable<STMT_TYPES>;
 
 /// A production for statements.
 /// id is for disambiguation for identical template args
 template <int id, typename... Types>
-struct StmtProduction : public Statement, public StmtProductionVisitableImpl<id, Types...>
-{
-  explicit StmtProduction(Types... args)
-      : derivatives(std::move(args)...) {}
+struct StmtProduction : public Statement,
+                        public StmtProductionVisitableImpl<id, Types...> {
+  explicit StmtProduction(Types... args) : derivatives(std::move(args)...) {}
 
-  void print(std::ostream &os) const override
-  {
+  void print(std::ostream &os) const override {
     os << "Statement: \n\t";
-    std::apply([&os](const auto &...args)
-               { ((os << args << "\t"), ...); },
+    std::apply([&os](const auto &... args) { ((os << args << "\t"), ...); },
                derivatives);
     os << '\n';
   }
 
-  template <size_t index>
-  decltype(auto) child()
-  {
+  template <size_t index> decltype(auto) child() {
     auto &elem = std::get<index>(derivatives);
     return elem;
   }
 
-  template <size_t index>
-  decltype(auto) child() const
-  {
+  template <size_t index> decltype(auto) child() const {
     const auto &elem = std::get<index>(derivatives);
     return elem;
   }
@@ -90,27 +82,27 @@ struct StmtProduction : public Statement, public StmtProductionVisitableImpl<id,
   std::tuple<std::remove_reference_t<Types>...> derivatives;
 };
 
-#define DECLARE_STMT_VISIT_METHODS      \
-  void visit(VarStmt &) override;       \
-  void visit(MalformedStmt &) override; \
-  void visit(BlockStmt &) override;     \
-  void visit(PrintStmt &) override;     \
-  void visit(ExprStmt &) override;      \
-  void visit(IfStmt &) override;        \
-  void visit(WhileStmt &) override;     \
-  void visit(EmptyStmt &) override;     \
-  void visit(FunctionStmt &) override;  \
-  void visit(ReturnStmt &) override;    \
+#define DECLARE_STMT_VISIT_METHODS                                             \
+  void visit(VarStmt &) override;                                              \
+  void visit(MalformedStmt &) override;                                        \
+  void visit(BlockStmt &) override;                                            \
+  void visit(PrintStmt &) override;                                            \
+  void visit(ExprStmt &) override;                                             \
+  void visit(IfStmt &) override;                                               \
+  void visit(WhileStmt &) override;                                            \
+  void visit(EmptyStmt &) override;                                            \
+  void visit(FunctionStmt &) override;                                         \
+  void visit(ReturnStmt &) override;                                           \
   void visit(ClassStmt &) override;
 
 std::ostream &operator<<(std::ostream &os, const Statement &rhs);
 
 std::ostream &operator<<(std::ostream &os, const stmt &rhs);
-std::ostream &operator<<(std::ostream &os, const std::vector<FunctionStmtPtr> &rhs);
+std::ostream &operator<<(std::ostream &os,
+                         const std::vector<FunctionStmtPtr> &rhs);
 std::ostream &operator<<(std::ostream &os, const std::vector<stmt> &rhs);
 
 template <typename Type, typename... arg_types>
-stmt new_stmt(arg_types &&...args)
-{
+stmt new_stmt(arg_types &&... args) {
   return std::make_unique<Type>(std::forward<arg_types>(args)...);
 }

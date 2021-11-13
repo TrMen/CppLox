@@ -5,9 +5,7 @@
 #include <variant>
 #include <vector>
 
-struct NullType
-{
-};
+struct NullType {};
 
 bool operator==(const NullType &, const NullType &);
 bool operator!=(const NullType &, const NullType &);
@@ -24,10 +22,8 @@ using ClassPtr = std::shared_ptr<Class>;
 
 std::ostream &operator<<(std::ostream &os, const NullType &rhs);
 
-struct Token
-{
-  enum class TokenType
-  {
+struct Token {
+  enum class TokenType {
     // Single-character tokens.
     LEFT_PAREN,
     RIGHT_PAREN,
@@ -81,12 +77,10 @@ struct Token
     EOF_
   };
 
-  using Value =
-      std::variant<double, std::string, NullType, bool,
-                   CallablePtr, InstancePtr>;
+  using Value = std::variant<double, std::string, NullType, bool, CallablePtr,
+                             InstancePtr>;
 
-  Token(TokenType _type, std::string _lexeme, Value _value,
-        unsigned int _line);
+  Token(TokenType _type, std::string _lexeme, Value _value, unsigned int _line);
 
   const TokenType type;
   const std::string lexeme;
@@ -103,14 +97,12 @@ std::ostream &operator<<(std::ostream &os, const std::vector<Token> &value);
 std::string stringify(const Token::Value &value);
 
 template <typename T>
-std::shared_ptr<T> get_callable_as(const Token::Value &value)
-{
-  static_assert(std::is_same_v<T, Class> || std::is_same_v<T, Function>, "Callable must be a class or function");
+std::shared_ptr<T> get_callable_as(const Token::Value &value) {
+  static_assert(std::is_same_v<T, Class> || std::is_same_v<T, Function>,
+                "Callable must be a class or function");
 
-  if (const auto *val = std::get_if<CallablePtr>(&value))
-  {
-    if (auto casted = std::dynamic_pointer_cast<T>(*val))
-    {
+  if (const auto *val = std::get_if<CallablePtr>(&value)) {
+    if (auto casted = std::dynamic_pointer_cast<T>(*val)) {
       return casted;
     }
   }

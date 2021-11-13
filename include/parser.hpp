@@ -8,8 +8,7 @@
 
 /// Parse an collection of Token to return an AST representation of it's syntax.
 /// This is a recursive descent parser
-struct Parser
-{
+struct Parser {
   explicit Parser(std::vector<Token> _tokens,
                   std::shared_ptr<ErrorHandler> _err_handler =
                       std::make_shared<CerrHandler>());
@@ -62,8 +61,7 @@ private:
   /// Consume the next token if it matches type, else error with message
   const Token &consume(Token::TokenType type, const std::string &message);
 
-  struct ParseError : std::exception
-  {
+  struct ParseError : std::exception {
     [[nodiscard]] const char *what() const noexcept override;
     explicit ParseError(const char *_message) : message(_message) {}
     explicit ParseError(const std::string &_message)

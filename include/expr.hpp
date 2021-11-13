@@ -7,14 +7,9 @@
 #include "token.hpp"
 #include "visitor.hpp"
 
-template <typename T>
-T cp(const T &in)
-{
-  return in;
-}
+template <typename T> T cp(const T &in) { return in; }
 
-struct Expr
-{
+struct Expr {
   Expr() = default;
   virtual ~Expr();
 
@@ -31,8 +26,7 @@ struct Expr
 };
 using expr = std::unique_ptr<Expr>;
 
-template <int id, typename... Types>
-struct ExprProduction;
+template <int id, typename... Types> struct ExprProduction;
 
 struct Statement;
 using stmt = std::unique_ptr<Statement>;
@@ -59,41 +53,37 @@ using This = ExprProduction<14, Token>;                                         
 using Super = ExprProduction<15, Token, Token, bool>;                                     // 'super' accessed_method is_unbound
 // clang-format on
 
-#define EXPR_TYPES Literal, Grouping, Unary, Binary, Ternary, Malformed, Variable, \
-                   Empty, Assign, Logical, Call, Lambda, Get, Set, This, Super
+#define EXPR_TYPES                                                             \
+  Literal, Grouping, Unary, Binary, Ternary, Malformed, Variable, Empty,       \
+      Assign, Logical, Call, Lambda, Get, Set, This, Super
 
 using ExprVisitableBase = Visitable<EXPR_TYPES>;
 template <int id, typename... Types>
-using ExprProductionVisitableImpl = VisitableImpl<ExprProduction<id, Types...>, EXPR_TYPES>;
+using ExprProductionVisitableImpl =
+    VisitableImpl<ExprProduction<id, Types...>, EXPR_TYPES>;
 using ExprVisitor = Visitor<EXPR_TYPES>;
 
 //--------------------End of alias definitions--------------------------------
 
 /// A generic production for an expression. id is for disambiguation
 template <int id, typename... Types>
-struct ExprProduction : public Expr, public ExprProductionVisitableImpl<id, Types...>
-{
-  explicit ExprProduction(Types &&...args)
+struct ExprProduction : public Expr,
+                        public ExprProductionVisitableImpl<id, Types...> {
+  explicit ExprProduction(Types &&... args)
       : derivatives(std::forward<Types>(args)...) {}
 
-  void print(std::ostream &os) const override
-  {
+  void print(std::ostream &os) const override {
     os << "Expr: \n\t";
-    std::apply([&os](auto &&...args)
-               { ((os << "\t" << args << "\t"), ...); },
+    std::apply([&os](auto &&... args) { ((os << "\t" << args << "\t"), ...); },
                derivatives);
     os << '\n';
   }
 
-  template <size_t index>
-  [[nodiscard]] decltype(auto) child()
-  {
+  template <size_t index>[[nodiscard]] decltype(auto) child() {
     return std::get<index>(derivatives);
   }
 
-  template <size_t index>
-  [[nodiscard]] decltype(auto) child() const
-  {
+  template <size_t index>[[nodiscard]] decltype(auto) child() const {
     const auto &elem = std::get<index>(derivatives);
     return elem;
   }
@@ -106,26 +96,25 @@ std::ostream &operator<<(std::ostream &os, const std::vector<expr> &rhs);
 std::ostream &operator<<(std::ostream &os, const Expr &rhs);
 std::ostream &operator<<(std::ostream &os, const expr &rhs);
 
-#define DECLARE_EXPR_VISIT_METHODS  \
-  void visit(Assign &) override;    \
-  void visit(Logical &) override;   \
-  void visit(Variable &) override;  \
-  void visit(Empty &) override;     \
-  void visit(Literal &) override;   \
-  void visit(Unary &) override;     \
-  void visit(Binary &) override;    \
-  void visit(Ternary &) override;   \
-  void visit(Malformed &) override; \
-  void visit(Call &) override;      \
-  void visit(Grouping &) override;  \
-  void visit(Lambda &) override;    \
-  void visit(Get &) override;       \
-  void visit(Set &) override;       \
-  void visit(This &) override;      \
+#define DECLARE_EXPR_VISIT_METHODS                                             \
+  void visit(Assign &) override;                                               \
+  void visit(Logical &) override;                                              \
+  void visit(Variable &) override;                                             \
+  void visit(Empty &) override;                                                \
+  void visit(Literal &) override;                                              \
+  void visit(Unary &) override;                                                \
+  void visit(Binary &) override;                                               \
+  void visit(Ternary &) override;                                              \
+  void visit(Malformed &) override;                                            \
+  void visit(Call &) override;                                                 \
+  void visit(Grouping &) override;                                             \
+  void visit(Lambda &) override;                                               \
+  void visit(Get &) override;                                                  \
+  void visit(Set &) override;                                                  \
+  void visit(This &) override;                                                 \
   void visit(Super &) override;
 
 template <typename Type, typename... arg_types>
-expr new_expr(arg_types &&...args)
-{
+expr new_expr(arg_types &&... args) {
   return std::make_unique<Type>(std::forward<arg_types>(args)...);
 }

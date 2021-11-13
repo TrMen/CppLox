@@ -16,4 +16,7 @@ Checks: '*,
     -google-readability-braces-around-statements,
     -hicpp-braces-around-statements,
     -readability-braces-around-statements,
-    -google-build-using-namespace'
+    -google-build-using-namespace,
+    -fuchsia-trailing-return,
+    -fuchsia-multiple-inheritance,
+    -fuchsia-statically-constructed-objects'

@@ -6,34 +6,32 @@
 #include <string_view>
 
 // Thrown by builtin exit() function to stop execution of the interpreter
-struct Exit : public std::runtime_error
-{
+struct Exit : public std::runtime_error {
   explicit Exit(const std::string &msg);
 };
 
-struct RuntimeError : public std::runtime_error
-{
+struct RuntimeError : public std::runtime_error {
   RuntimeError(Token _token, const std::string &msg);
 
   RuntimeError(Token::Value value, const std::string &msg, unsigned int line);
 
-  // Reports an error without a line. Only use this if better information is not available
+  // Reports an error without a line. Only use this if better information is not
+  // available
   explicit RuntimeError(const std::string &msg);
 
   const Token token;
 };
 
-struct CompiletimeError : public std::runtime_error
-{
+struct CompiletimeError : public std::runtime_error {
   CompiletimeError(Token _token, const std::string &msg);
 
-  CompiletimeError(Token::Value value, const std::string &msg, unsigned int line);
+  CompiletimeError(Token::Value value, const std::string &msg,
+                   unsigned int line);
 
   const Token token;
 };
 
-struct ErrorHandler
-{
+struct ErrorHandler {
   ErrorHandler() = default;
   virtual ~ErrorHandler();
   ErrorHandler &operator=(const ErrorHandler &) = default;
@@ -62,8 +60,7 @@ private:
   bool had_runtime_error = false;
 };
 
-struct CerrHandler : public ErrorHandler
-{
+struct CerrHandler : public ErrorHandler {
   CerrHandler();
 
 private:
@@ -71,8 +68,7 @@ private:
               std::string_view message, bool is_error) override;
 };
 
-struct FileErrorHandler : public ErrorHandler
-{
+struct FileErrorHandler : public ErrorHandler {
   explicit FileErrorHandler(std::string_view filename);
 
 private:

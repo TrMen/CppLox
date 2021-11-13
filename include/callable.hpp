@@ -5,11 +5,9 @@
 
 struct Interpreter;
 
-struct Callable
-{
-  virtual Token::Value
-  call(Interpreter &interpreter,
-       const std::vector<Token::Value> &arguments) = 0;
+struct Callable {
+  virtual Token::Value call(Interpreter &interpreter,
+                            const std::vector<Token::Value> &arguments) = 0;
   [[nodiscard]] virtual size_t arity() const = 0;
   [[nodiscard]] virtual std::string to_string() const = 0;
 

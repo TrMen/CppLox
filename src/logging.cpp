@@ -5,17 +5,18 @@ namespace Logging
 {
     std::ostream &operator<<(std::ostream &os, LogLevel level)
     {
+        using enum LogLevel;
         switch (level)
         {
-        case LogLevel::error:
+        case ERROR:
             return os << "Error";
-        case LogLevel::warning:
+        case WARNING:
             return os << "Warning";
 
-        case LogLevel::info:
+        case INFO:
             return os << "Info";
 
-        case LogLevel::debug:
+        case DEBUG:
             return os << "Debug";
         }
         std::abort();
@@ -27,7 +28,7 @@ namespace Logging
             std::cout << std::endl;
     }
 
-    static LogLevel log_level = LogLevel::warning;
+    static LogLevel log_level = LogLevel::WARNING;
 
     void set_log_level(LogLevel level)
     {

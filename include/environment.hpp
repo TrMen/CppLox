@@ -5,13 +5,12 @@
 
 #include "token.hpp"
 
-///Store variable bindings
-struct Environment
-{
+/// Store variable bindings
+struct Environment {
   explicit Environment(std::shared_ptr<Environment> _enclosing = nullptr);
 
-  /// Define a new variable (or function) binding with name and value extracted from the Token.
-  /// May throw RuntimeError if the name is already defined
+  /// Define a new variable (or function) binding with name and value extracted
+  /// from the Token. May throw RuntimeError if the name is already defined
   void define(Token variable);
 
   void define(std::string identifier, Token::Value value);
@@ -23,7 +22,8 @@ struct Environment
   /// Get a variable value by the name.
   /// This assumes the variable is found in the index'th nested environment
   /// Unlike for get(), this variable must be present
-  [[nodiscard]] const Token::Value &get_at(size_t depth, const std::string &name) const;
+  [[nodiscard]] const Token::Value &get_at(size_t depth,
+                                           const std::string &name) const;
 
   /// Assign a new value to an existing variable.
   /// @throws RuntimeError on unknown variable access.

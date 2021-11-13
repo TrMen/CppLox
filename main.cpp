@@ -6,11 +6,12 @@
 #include <vector>
 #include <filesystem>
 
-#include "logging.hpp"
+#include "analyzer.hpp"
 #include "error.hpp"
 #include "expr.hpp"
 #include "interpreter.hpp"
 #include "lexer.hpp"
+#include "logging.hpp"
 #include "parser.hpp"
 #include "resolver.hpp"
 
@@ -63,6 +64,14 @@ static std::vector<stmt> run(const std::string &source, std::optional<std::strin
     return {};
   }
 
+  Analyzer analyzer{interpreter};
+  analyzer.analyze(statements);
+
+  if (err_handler->has_error())
+  {
+    return {};
+  }
+
   try
   {
     interpreter.interpret(statements);
@@ -78,7 +87,7 @@ static std::vector<stmt> run(const std::string &source, std::optional<std::strin
     std::exit(0);
   }
 
-  Logging::newline(Logging::LogLevel::debug);
+  Logging::newline(Logging::LogLevel::DEBUG);
 
   return statements;
 }
@@ -133,7 +142,7 @@ static int run_file(const char *filename)
 int main(int argc, char *argv[])
 {
   std::setprecision(3);
-  Logging::set_log_level(Logging::LogLevel::error);
+  Logging::set_log_level(Logging::LogLevel::ERROR);
   if (argc > 2)
   {
     std::cout << "Usage: Lox [script]";

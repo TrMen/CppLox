@@ -1,3 +1,5 @@
 build/
-.vscode
+.vscode/
 checks.json
+.clangd/
+compile_commands.json

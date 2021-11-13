@@ -1,0 +1,82 @@
+[
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build",
+  "command": "/usr/bin/clang++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Lox.dir/main.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/main.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/main.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Instance.dir/instance.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/instance.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/instance.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Lexer.dir/lexer.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/lexer.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/lexer.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Interpreter.dir/interpreter.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/interpreter.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/interpreter.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Analyzer.dir/analyzer.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/analyzer.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/analyzer.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Class.dir/class.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/class.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/class.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Expr.dir/expr.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/expr.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/expr.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Resolver.dir/resolver.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/resolver.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/resolver.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Error.dir/error.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/error.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/error.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Parser.dir/parser.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/parser.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/parser.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Token.dir/token.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/token.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/token.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Environment.dir/environment.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/environment.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/environment.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Stmt.dir/stmt.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/stmt.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/stmt.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Function.dir/function.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/function.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/function.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Buildin.dir/buildin.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/buildin.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/buildin.cpp"
+},
+{
+  "directory": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/build/src",
+  "command": "/usr/bin/c++   -I\"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/include\"  -g   -Wall -Wextra -pedantic -g -pipe -std=gnu++2a -o CMakeFiles/Logging.dir/logging.cpp.o -c \"/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/logging.cpp\"",
+  "file": "/media/sf_Shared_VM_Folder/Grammars/crafting interpreters/TreeWalker/src/logging.cpp"
+}
+]
