@@ -3,3 +3,4 @@ build/
 checks.json
 .clangd/
 compile_commands.json
+.cache/
