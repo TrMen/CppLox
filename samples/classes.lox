@@ -43,7 +43,7 @@ foo.init(1); // Can re-initialize object by explicitly calling init()
 foo.printX(); // "1"
 
 
-class DerivedFoo < Foo { // '<' indicated inheritance. Inheritance here just means you can call baseclass methods
+class DerivedFoo < Foo { // '<' indicates inheritance. Inheritance here just means you can call baseclass methods
   printX()
   {
     print "Derived";
