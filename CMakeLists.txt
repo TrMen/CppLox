@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 
+if(MSVC)
+  target_compile_options(cmake_cpp_boilerplate_compiler_options INTERFACE /W4 "/permissive-")
+  if(BP_WARNING_AS_ERROR)
+    target_compile_options(cmake_cpp_boilerplate_compiler_options INTERFACE /WX)
+  endif()
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 add_compile_options(-Wall -Wextra -pedantic -g -pipe)
+endif()
 
 # set the project name
 project(Lox)
