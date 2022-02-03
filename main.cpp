@@ -26,12 +26,12 @@ static void log_tokens(const std::vector<Token> &tokens) {
 
 static std::vector<stmt>
 run(const std::string &source, const std::shared_ptr<ErrorHandler> &err_handler,
-    std::optional<std::string> filename = std::nullopt) {
+    std::optional<std::string> maybe_filename = std::nullopt) {
   static Interpreter interpreter{std::cout, err_handler};
 
-  if (filename.has_value()) {
+  if (maybe_filename.has_value()) {
     interpreter.interpreter_path =
-        std::filesystem::path(*filename).remove_filename();
+        std::filesystem::path(*maybe_filename).remove_filename().string();
   }
 
   Lexer lexer{source, err_handler};

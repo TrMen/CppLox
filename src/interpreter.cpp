@@ -16,7 +16,7 @@ Interpreter::Interpreter(std::ostream &_os,
                          std::shared_ptr<ErrorHandler> _err_handler)
     : out_stream(_os), globals(std::make_shared<Environment>()),
       environment(globals), err_handler(std::move(_err_handler)),
-      interpreter_path{std::filesystem::current_path()} {
+      interpreter_path{std::filesystem::current_path().string()} {
   for (const auto &buildin : Buildin::get_buildins()) {
     globals->define(buildin);
   }
@@ -97,7 +97,7 @@ template <class... Ts> struct overloaded : Ts... {
 };
 // Explicit deduction guide. Shouldn't be needed for C++20, but doesn't compile
 // without
-template <class... Ts> overloaded(Ts...)->overloaded<Ts...>;
+template <class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 /* All values except NullType and the bool false are truthy, including "", 0,
  * functions, callables*/
@@ -114,13 +114,13 @@ bool is_truthy(const Token::Value &value) {
 /// Operands are variants. Returns true only of all variants hold value_type
 /// No operands returns true
 template <typename value_type, typename... Types>
-bool check_operand_types(const Types &... operands) {
+bool check_operand_types(const Types &...operands) {
   return (std::holds_alternative<value_type>(operands) && ...);
 }
 
 /// Throw a RuntimeError if any operand is not of value_type.
 template <typename value_type, typename... Operands>
-void assert_operand_types(const Token &op, const Operands &... operands) {
+void assert_operand_types(const Token &op, const Operands &...operands) {
   if (not check_operand_types<value_type>(operands...)) {
     if constexpr (std::is_same_v<value_type, double>) {
       throw RuntimeError(op, "Operands must be numbers");
