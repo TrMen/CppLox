@@ -13,8 +13,8 @@ struct Parser {
                   std::shared_ptr<ErrorHandler> _err_handler =
                       std::make_shared<CerrHandler>());
 
-  bool match(const std::vector<Token::TokenType> &matched_values);
-  bool match(Token::TokenType matched_values);
+  bool match(const std::vector<Token::TokenType> &matched_types);
+  bool match(Token::TokenType matched_type);
   [[nodiscard]] const Token &previous() const;
 
   std::vector<stmt> parse();

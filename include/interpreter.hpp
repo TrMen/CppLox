@@ -15,12 +15,10 @@ struct Interpreter : public ExprVisitor, public StmtVisitor {
   explicit Interpreter(std::ostream &_os,
                        std::shared_ptr<ErrorHandler> _err_handler);
 
-  Interpreter(const Interpreter &) = default;
-  Interpreter(Interpreter &&) noexcept = default;
-  // TODO(Me): Why are these implicitly deleted? I don't see which base class
-  // does it.
-  Interpreter &operator=(const Interpreter &) = default;
-  Interpreter &operator=(Interpreter &&) noexcept = default;
+  Interpreter(const Interpreter &) = delete;
+  Interpreter(Interpreter &&) noexcept = delete;
+  Interpreter &operator=(const Interpreter &) = delete;
+  Interpreter &operator=(Interpreter &&) noexcept = delete;
   ~Interpreter() override = default;
 
   /// Interprets a list of statements, representing a program
