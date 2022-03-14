@@ -1,0 +1,84 @@
+
+// Lox has no arrays or any other collection, 
+// so we'll need to make a singly linked list
+class List {
+    init (val, cons) {
+        this.val = val;
+        this.cons = cons;
+    }
+}
+
+fn digitValue(roman) {
+    if (roman == "I") {
+        return 1;
+    }
+    if (roman == "V") {
+        return 5;
+    }
+    if (roman == "X") {
+        return 10;
+    }
+    if (roman == "L") {
+        return 50;
+    }
+    if (roman == "C") {
+        return 100;
+    }
+    if (roman == "D") {
+        return 500;
+    }
+    if (roman == "M") {
+        return 1000;
+    }
+
+    assert(false, "Not a roman numeral");
+}
+
+fn romanToInteger(head) {
+    let value = 0;
+
+    while(head != nil) {
+        value = value + digitValue(head.val);
+
+        head = head.cons;
+    }
+
+    return value;
+}
+
+fn listSize(head) {
+    let count = 0;
+
+    while(head != nil) {
+        count = count + 1;
+        head = head.cons;
+    }
+
+    return count;
+}
+
+let roman = List("X", List("X", List("V", List("I", List("I", nil)))));
+
+let value = romanToInteger(roman);
+
+print(value);
+
+fun fibonacci(n) {
+    if (n <= 1) {
+        return n;
+    }
+    return fibonacci(n - 2) + fibonacci(n - 1);
+}
+
+var total = 0;
+for (var j = 0; j < 10; j = j + 1) {
+    var start = clock();
+    for (var i = 0; i < 30; i = i + 1) {
+        fibonacci(i);
+    }
+    var now = clock() - start;
+    total = total + now;
+    print(now);
+}
+
+print(total / 10);
