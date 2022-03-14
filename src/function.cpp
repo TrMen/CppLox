@@ -20,6 +20,7 @@ const std::vector<Token> &Function::parameters() const {
   }
 
   assert(false && "Unhandled function type n Function::parameters()");
+  exit(1);
 }
 
 const std::vector<stmt> &Function::body() const {
@@ -31,6 +32,7 @@ const std::vector<stmt> &Function::body() const {
   }
 
   assert(false && "Unhandled function type in Function::body()");
+  exit(1);
 }
 
 Token::Value Function::call(Interpreter &interpreter,

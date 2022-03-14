@@ -19,15 +19,12 @@ void set_log_level(LogLevel level);
 LogLevel get_log_level();
 
 template <typename... Arg>
-void log(LogLevel level, const std::string &filename, int line,
-         const Arg &...args) {
-  if (static_cast<int>(level) >= static_cast<int>(get_log_level())) {
-    std::cout << filename << ":" << line << ": ";
+void log(const std::string &filename, int line, const Arg &...args) {
+  std::cout << filename << ":" << line << ": ";
 
-    ((std::cout << args), ...); // Print all variadic args
+  ((std::cout << args), ...); // Print all variadic args
 
-    std::cout << std::endl;
-  }
+  std::cout << std::endl;
 }
 
 void newline(LogLevel);
@@ -38,10 +35,30 @@ void newline(LogLevel);
   (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
 #define LOG_ERROR(...)                                                         \
-  Logging::log(Logging::LogLevel::ERROR, FILENAME_ONLY, __LINE__, __VA_ARGS__)
+  [&]() {                                                                      \
+    if (static_cast<int>(Logging::LogLevel::ERROR) >=                          \
+        static_cast<int>(Logging::get_log_level())) {                          \
+      Logging::log(FILENAME_ONLY, __LINE__, __VA_ARGS__);                      \
+    }                                                                          \
+  }()
 #define LOG_WARNING(...)                                                       \
-  Logging::log(Logging::LogLevel::WARNING, FILENAME_ONLY, __LINE__, __VA_ARGS__)
+  [&]() {                                                                      \
+    if (static_cast<int>(Logging::LogLevel::WARNING) >=                        \
+        static_cast<int>(Logging::get_log_level())) {                          \
+      Logging::log(FILENAME_ONLY, __LINE__, __VA_ARGS__);                      \
+    }                                                                          \
+  }()
 #define LOG_INFO(...)                                                          \
-  Logging::log(Logging::LogLevel::INFO, FILENAME_ONLY, __LINE__, __VA_ARGS__)
+  [&]() {                                                                      \
+    if (static_cast<int>(Logging::LogLevel::INFO) >=                           \
+        static_cast<int>(Logging::get_log_level())) {                          \
+      Logging::log(FILENAME_ONLY, __LINE__, __VA_ARGS__);                      \
+    }                                                                          \
+  }()
 #define LOG_DEBUG(...)                                                         \
-  Logging::log(Logging::LogLevel::DEBUG, FILENAME_ONLY, __LINE__, __VA_ARGS__)
+  [&]() {                                                                      \
+    if (static_cast<int>(Logging::LogLevel::DEBUG) >=                          \
+        static_cast<int>(Logging::get_log_level())) {                          \
+      Logging::log(FILENAME_ONLY, __LINE__, __VA_ARGS__);                      \
+    }                                                                          \
+  }()
