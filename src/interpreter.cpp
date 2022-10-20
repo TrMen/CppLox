@@ -167,7 +167,7 @@ Class::ClassFunctions Interpreter::split_class_functions(
     case FunctionKind::METHOD:
     case FunctionKind::CONSTRUCTOR: {
       // Every AST node method becomes a runtime function that captures the
-      // envrionment This allows methods to keep being associated with their
+      // environment This allows methods to keep being associated with their
       // original objects
       methods.emplace(
           function->child<0>().lexeme,

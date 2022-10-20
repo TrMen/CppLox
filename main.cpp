@@ -57,10 +57,6 @@ run(const std::string &source, const std::shared_ptr<ErrorHandler> &err_handler,
     return {};
   }
 
-  if (err_handler->has_error()) {
-    return {};
-  }
-
   try {
     interpreter.interpret(statements);
 
@@ -122,7 +118,7 @@ static int run_file(const char *filename,
 }
 
 int main(int argc, char *argv[]) {
-  std::setprecision(3);
+  (void)std::setprecision(3);
   Logging::set_log_level(Logging::LogLevel::ERROR);
   if (argc > 2) {
     std::cout << "Usage: Lox [script]";

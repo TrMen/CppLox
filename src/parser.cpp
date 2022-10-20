@@ -300,7 +300,7 @@ stmt Parser::return_statement() {
 template <expr (Parser::*production)(), const std::vector<Type> &matched_types,
           const std::vector<Type> &error_types, typename expr_type = Binary>
 static expr left_associative_binary_production(Parser *owner) {
-  if (owner->match(error_types)) { // Erronous use of binary operator as unary
+  if (owner->match(error_types)) { // Erroneous use of binary operator as unary
     Token prev = owner->previous();
     (owner->*production)(); // Discard result
     owner->err_handler->error(prev,

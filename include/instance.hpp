@@ -10,10 +10,9 @@ struct Instance : public std::enable_shared_from_this<Instance> {
 
   [[nodiscard]] std::string to_string() const;
 
-  [[nodiscard]] virtual Token::Value get_field(const Token &name,
-                                               Interpreter &);
+  [[nodiscard]] Token::Value get_field(const Token &name, Interpreter &);
 
-  virtual void set_field(const Token &name, Token::Value);
+  void set_field(const Token &name, Token::Value);
 
 private:
   // Field are more general than properties. A field is anything defined on an

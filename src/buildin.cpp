@@ -14,7 +14,7 @@
 #include "resolver.hpp"
 
 namespace {
-/// Build-in function with 0 parameters
+/// Built-in function with 0 parameters
 template <typename Closure> struct SimpleBuildin : public Callable {
 public:
   SimpleBuildin(std::string _name, Closure _action)
@@ -51,7 +51,7 @@ public:
     };
 
     if (!std::holds_alternative<std::string>(log_level) ||
-        str_to_log_level.count(std::get<std::string>(log_level)) == 0) {
+        str_to_log_level.contains(std::get<std::string>(log_level))) {
       const Token error_token{Token::TokenType::FUN, to_string(), NullType{},
                               0};
       throw RuntimeError(
@@ -214,9 +214,8 @@ std::vector<Token> get_buildins() {
       std::make_shared<SimpleBuildin<decltype(print_env_closure)>>(
           "print_env", std::move(print_env_closure));
 
-  auto exit_closure = [](Interpreter &) {
+  auto exit_closure = [](Interpreter &) -> NullType {
     throw Exit("Exit called by buildin exit()");
-    return NullType{};
   };
   auto exit_buildin = std::make_shared<SimpleBuildin<decltype(exit_closure)>>(
       "exit", std::move(exit_closure));

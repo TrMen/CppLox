@@ -68,8 +68,8 @@ private:
 
   size_t recursion_depth = 0;
 
-  Token::Value get_evaluated(const expr &node);
-  Token::Value get_evaluated(Expr &node);
+  Token::Value get_evaluated(const expr &expression);
+  Token::Value get_evaluated(Expr &expression);
 
   [[nodiscard]] Class::ClassFunctions split_class_functions(
       const std::vector<FunctionStmtPtr> &class_functions) const;

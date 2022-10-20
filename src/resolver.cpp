@@ -108,7 +108,7 @@ void Resolver::visit(Assign &node) {
 void Resolver::visit(FunctionStmt &node) {
   const auto &name = node.child<0>();
 
-  // Declare the name eagerly, to allow functions to recurisvely
+  // Declare the name eagerly, to allow functions to recursively
   // refer to their names in their bodies
   declare(name);
   define(name);
